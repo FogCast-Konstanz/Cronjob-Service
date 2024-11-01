@@ -124,11 +124,11 @@ if __name__ == "__main__":
   }
   responses = openmeteo.weather_api(url, params=params)
 
-  basePath = "data"
+  basePath = os.path.join(os.curdir, "data")
   data_directory = os.path.join(basePath, datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S"))
 
   if not os.path.exists(data_directory):
-    os.mkdir(data_directory)
+    os.makedirs(data_directory)
 
   for (i, response) in enumerate(responses):
     model = response.Model()
