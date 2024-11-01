@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import sys
 from datetime import datetime
+from abstract import CronjobBase as Cronjob_Interface
 
 import logging
 logging.basicConfig(filename='cron.log', filemode='w', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
