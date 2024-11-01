@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 import sys
 from datetime import datetime
-from cron_base import CronjobBase as Cronjob_Interface
-from jobs.open_meteo import OpenMeteoCronjob
+from cronjob.cron_base import CronjobBase as Cronjob_Interface
+from cronjob.jobs.open_meteo import OpenMeteoCronjob
 
 import logging
 logging.basicConfig(filename='cron.log', filemode='w', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

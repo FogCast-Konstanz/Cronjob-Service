@@ -1,4 +1,3 @@
-import datetime
 import os
 import openmeteo_requests
 import pathlib

@@ -1,34 +1,25 @@
 import datetime
 import os
 import openmeteo_requests
-import pathlib
 
 import requests_cache
 import pandas as pd
 from retry_requests import retry
 
-from cron_base import CronjobBase
-
-
+from cronjob.cron_base import CronjobBase
+from cronjob import config
 
 class OpenMeteoCronjob(CronjobBase):
 
    def __init__(self):
       super().__init__()
-      script_dir = pathlib.Path(__file__).parent.resolve()
-      self._base_data_dictionary = os.path.join(script_dir.parent, "data")
       self._lastDataDirectory = None
 
-      config_dir = os.path.join(script_dir.parent, "config")
-      model_ids_path = os.path.join(config_dir, "models.csv")
-      models_df = pd.read_csv(model_ids_path)
+      models_df = pd.read_csv(config.model_ids_path)
       self._models = {row['id']: row['name'] for _, row in models_df.iterrows()}
 
-      hourly_fields_path = os.path.join(config_dir, "hourly_fields.csv")
-      hourly_fields_df = pd.read_csv(hourly_fields_path)
-      print(hourly_fields_df)
+      hourly_fields_df = pd.read_csv(config.hourly_fields_path)
       self._hourly_fields = [row['field'] for _, row in hourly_fields_df.iterrows()]
-      print(self._hourly_fields)
 
    def start(self, dt: datetime) -> bool:
       cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
@@ -47,7 +38,7 @@ class OpenMeteoCronjob(CronjobBase):
       }
       responses = openmeteo.weather_api(url, params=params)
 
-      data_directory = os.path.join(self._base_data_dictionary, dt.strftime("%Y-%m-%dT%H-%M-%S"))
+      data_directory = os.path.join(config.data_dir, dt.strftime("%Y-%m-%dT%H-%M-%S"))
 
       if not os.path.exists(data_directory):
          os.makedirs(data_directory)
@@ -56,11 +47,7 @@ class OpenMeteoCronjob(CronjobBase):
          model_id = response.Model()
          model = self._models[model_id]
 
-         print(f"Model {model}")
-         print(f"Coordinates {response.Latitude()}°N {response.Longitude()}°E")
-         print(f"Elevation {response.Elevation()} m asl")
-         print(f"Timezone {response.Timezone()} {response.TimezoneAbbreviation()}")
-         print(f"Timezone difference to GMT+0 {response.UtcOffsetSeconds()} s")
+         print("Received data for model: {}".format(model))
 
          df = toDataFrame(response)
          df.to_csv("{}/{}.csv".format(data_directory, model), index=False)
