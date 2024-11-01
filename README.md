@@ -13,8 +13,17 @@ This project is licensed under the MIT License.
 
 ## Development Setup
 
-- install [python 3.12.7](https://www.python.org/downloads/release/python-3127/) 
-- install python requirements `pip install -r .\requirements.txt`
+- Install [python 3.12.7](https://www.python.org/downloads/release/python-3127/) 
+
+- Use a virtual environment
+   - Create virtual env
+      - `python -m venv venv`
+   - Activate virtual env
+      - `. venv/bin/activate (Linux) or ./venv/Scripts/activate (Win)`
+   - Deactivate virtual env
+      - `deactivate`
+
+- Install the project in an editable state `pip install -e .`
 
 ## Transfer data from local to remote
 
