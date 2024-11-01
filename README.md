@@ -15,3 +15,7 @@ This project is licensed under the MIT License.
 
 - install [python 3.12.7](https://www.python.org/downloads/release/python-3127/) 
 - install python requirements `pip install -r .\requirements.txt`
+
+## Transfer data from local to remote
+
+`scp <local_file_path> weatherForecast@141.37.176.3:~/<remote_dir_path>`
