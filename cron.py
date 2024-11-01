@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 import sys
 from datetime import datetime
-from abstract import CronjobBase as Cronjob_Interface
+from cron_base import CronjobBase as Cronjob_Interface
+from jobs.open_meteo import OpenMeteoCronjob
 
 import logging
 logging.basicConfig(filename='cron.log', filemode='w', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -16,7 +17,7 @@ class Cron:
 
         # Jede Stunde
         60: [
-            
+            OpenMeteoCronjob
         ],
     }
 
@@ -46,7 +47,7 @@ class Cron:
                 self._logger.info('CronJob ' + jobNameAsStr + ': Prüfen')
 
                 # datetime übergeben, da die Abarbeitung der Jobs lange dauern könnte
-                if (job.shouldStart(dt) or self._run_single_job_now != None):
+                if (job.shouldStart(dt) or self._run_single_job_now is not None):
                     self._logger.info('CronJob ' + jobNameAsStr + ': Start')
 
                     try: 

@@ -4,6 +4,13 @@ from datetime import datetime
 class CronjobBase(metaclass=abc.ABCMeta):
     '''Basis-Klasse für Cronjobs'''
 
+    def shouldStart(self, dt: datetime) -> bool:
+         '''Ob der job in der aktuellen Umgebung ausgeführt werden darf.
+            Kann evtl. Zusatzbedingungen für einen Cronjob definieren, die vor Ausführung
+            geprüft werden.
+         '''
+         return True
+
     @abc.abstractmethod
     def start(self, dt: datetime) -> bool:
         '''Führt diesen Job aus'''

@@ -6,7 +6,57 @@ import requests_cache
 import pandas as pd
 from retry_requests import retry
 
+from cron_base import CronjobBase
 
+
+class OpenMeteoCronjob(CronjobBase):
+
+   def __init__(self):
+      super().__init__()
+      script_dir = os.path.dirname(os.path.abspath(__file__))
+      self._basePath = os.path.join(script_dir, "" , "data")
+      self._lastDataDirectory = None
+
+   def start(self, dt: datetime) -> bool:
+      cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
+      retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
+      openmeteo = openmeteo_requests.Client(session = retry_session)
+
+      # Make sure all required weather variables are listed here
+      # The order of variables in hourly or daily is important to assign them correctly below
+      url = "https://api.open-meteo.com/v1/forecast"
+      params = {
+         "latitude": 47.67761561553788,
+         "longitude": 9.190068339473479,
+         "hourly": ["temperature_2m", "relative_humidity_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "precipitation", "rain", "showers", "snowfall", "snow_depth", "weather_code", "pressure_msl", "surface_pressure", "cloud_cover", "cloud_cover_low", "cloud_cover_mid", "cloud_cover_high", "visibility", "evapotranspiration", "et0_fao_evapotranspiration", "vapour_pressure_deficit", "wind_speed_10m", "wind_speed_80m", "wind_speed_120m", "wind_speed_180m", "wind_direction_10m", "wind_direction_80m", "wind_direction_120m", "wind_direction_180m", "wind_gusts_10m", "temperature_80m", "temperature_120m", "temperature_180m", "soil_temperature_0cm", "soil_temperature_6cm", "soil_temperature_18cm", "soil_temperature_54cm", "soil_moisture_0_to_1cm", "soil_moisture_1_to_3cm", "soil_moisture_3_to_9cm", "soil_moisture_9_to_27cm", "soil_moisture_27_to_81cm"],
+         "timezone": "Europe/Berlin",
+         "models": ["ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", "bom_access_global", "gfs_seamless", "gfs_global", "gfs_hrrr", "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_msm", "jma_gsm", "icon_seamless", "icon_global", "icon_eu", "icon_d2", "gem_seamless", "gem_global", "gem_regional", "gem_hrdps_continental", "meteofrance_seamless", "meteofrance_arpege_world", "meteofrance_arpege_europe", "meteofrance_arome_france", "meteofrance_arome_france_hd", "arpae_cosmo_seamless", "arpae_cosmo_2i", "arpae_cosmo_5m", "metno_seamless", "metno_nordic", "knmi_seamless", "knmi_harmonie_arome_europe", "knmi_harmonie_arome_netherlands", "dmi_seamless", "dmi_harmonie_arome_europe", "ukmo_seamless", "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km"]
+      }
+      responses = openmeteo.weather_api(url, params=params)
+
+      data_directory = os.path.join(self._basePath, dt.strftime("%Y-%m-%dT%H-%M-%S"))
+
+      if not os.path.exists(data_directory):
+         os.makedirs(data_directory)
+
+      for (i, response) in enumerate(responses):
+         model = response.Model()
+
+         print(f"Model {model}")
+         print(f"Coordinates {response.Latitude()}°N {response.Longitude()}°E")
+         print(f"Elevation {response.Elevation()} m asl")
+         print(f"Timezone {response.Timezone()} {response.TimezoneAbbreviation()}")
+         print(f"Timezone difference to GMT+0 {response.UtcOffsetSeconds()} s")
+
+         df = toDataFrame(response)
+         df.to_csv("{}/{}.csv".format(data_directory, model), index=False)
+         
+      self._lastDataDirectory = data_directory
+
+   def clean_up_after_error(self):
+      if self._lastDataDirectory is not None:
+         os.rmdir(self._lastDataDirectory)
+      
 
 # Process hourly data. The order of variables needs to be the same as requested.
 def toDataFrame(response):
@@ -105,40 +155,3 @@ def toDataFrame(response):
 
     df = pd.DataFrame(data = hourly_data)
     return df
-
-
-if __name__ == "__main__":
-  cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
-  retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
-  openmeteo = openmeteo_requests.Client(session = retry_session)
-
-  # Make sure all required weather variables are listed here
-  # The order of variables in hourly or daily is important to assign them correctly below
-  url = "https://api.open-meteo.com/v1/forecast"
-  params = {
-    "latitude": 47.67761561553788,
-    "longitude": 9.190068339473479,
-    "hourly": ["temperature_2m", "relative_humidity_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "precipitation", "rain", "showers", "snowfall", "snow_depth", "weather_code", "pressure_msl", "surface_pressure", "cloud_cover", "cloud_cover_low", "cloud_cover_mid", "cloud_cover_high", "visibility", "evapotranspiration", "et0_fao_evapotranspiration", "vapour_pressure_deficit", "wind_speed_10m", "wind_speed_80m", "wind_speed_120m", "wind_speed_180m", "wind_direction_10m", "wind_direction_80m", "wind_direction_120m", "wind_direction_180m", "wind_gusts_10m", "temperature_80m", "temperature_120m", "temperature_180m", "soil_temperature_0cm", "soil_temperature_6cm", "soil_temperature_18cm", "soil_temperature_54cm", "soil_moisture_0_to_1cm", "soil_moisture_1_to_3cm", "soil_moisture_3_to_9cm", "soil_moisture_9_to_27cm", "soil_moisture_27_to_81cm"],
-    "timezone": "Europe/Berlin",
-    "models": ["ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", "bom_access_global", "gfs_seamless", "gfs_global", "gfs_hrrr", "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_msm", "jma_gsm", "icon_seamless", "icon_global", "icon_eu", "icon_d2", "gem_seamless", "gem_global", "gem_regional", "gem_hrdps_continental", "meteofrance_seamless", "meteofrance_arpege_world", "meteofrance_arpege_europe", "meteofrance_arome_france", "meteofrance_arome_france_hd", "arpae_cosmo_seamless", "arpae_cosmo_2i", "arpae_cosmo_5m", "metno_seamless", "metno_nordic", "knmi_seamless", "knmi_harmonie_arome_europe", "knmi_harmonie_arome_netherlands", "dmi_seamless", "dmi_harmonie_arome_europe", "ukmo_seamless", "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km"]
-  }
-  responses = openmeteo.weather_api(url, params=params)
-
-  basePath = os.path.join(os.curdir, "data")
-  data_directory = os.path.join(basePath, datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S"))
-
-  if not os.path.exists(data_directory):
-    os.makedirs(data_directory)
-
-  for (i, response) in enumerate(responses):
-    model = response.Model()
-
-    print(f"Model {model}")
-    print(f"Coordinates {response.Latitude()}°N {response.Longitude()}°E")
-    print(f"Elevation {response.Elevation()} m asl")
-    print(f"Timezone {response.Timezone()} {response.TimezoneAbbreviation()}")
-    print(f"Timezone difference to GMT+0 {response.UtcOffsetSeconds()} s")
-
-    df = toDataFrame(response)
-    df.to_csv("{}/{}.csv".format(data_directory, model), index=False)
-
