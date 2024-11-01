@@ -10,13 +10,25 @@ from retry_requests import retry
 from cron_base import CronjobBase
 
 
+
 class OpenMeteoCronjob(CronjobBase):
 
    def __init__(self):
       super().__init__()
       script_dir = pathlib.Path(__file__).parent.resolve()
-      self._basePath = os.path.join(script_dir.parent, "data")
+      self._base_data_dictionary = os.path.join(script_dir.parent, "data")
       self._lastDataDirectory = None
+
+      config_dir = os.path.join(script_dir.parent, "config")
+      model_ids_path = os.path.join(config_dir, "models.csv")
+      models_df = pd.read_csv(model_ids_path)
+      self._models = {row['id']: row['name'] for _, row in models_df.iterrows()}
+
+      hourly_fields_path = os.path.join(config_dir, "hourly_fields.csv")
+      hourly_fields_df = pd.read_csv(hourly_fields_path)
+      print(hourly_fields_df)
+      self._hourly_fields = [row['field'] for _, row in hourly_fields_df.iterrows()]
+      print(self._hourly_fields)
 
    def start(self, dt: datetime) -> bool:
       cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
@@ -29,19 +41,20 @@ class OpenMeteoCronjob(CronjobBase):
       params = {
          "latitude": 47.67761561553788,
          "longitude": 9.190068339473479,
-         "hourly": ["temperature_2m", "relative_humidity_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "precipitation", "rain", "showers", "snowfall", "snow_depth", "weather_code", "pressure_msl", "surface_pressure", "cloud_cover", "cloud_cover_low", "cloud_cover_mid", "cloud_cover_high", "visibility", "evapotranspiration", "et0_fao_evapotranspiration", "vapour_pressure_deficit", "wind_speed_10m", "wind_speed_80m", "wind_speed_120m", "wind_speed_180m", "wind_direction_10m", "wind_direction_80m", "wind_direction_120m", "wind_direction_180m", "wind_gusts_10m", "temperature_80m", "temperature_120m", "temperature_180m", "soil_temperature_0cm", "soil_temperature_6cm", "soil_temperature_18cm", "soil_temperature_54cm", "soil_moisture_0_to_1cm", "soil_moisture_1_to_3cm", "soil_moisture_3_to_9cm", "soil_moisture_9_to_27cm", "soil_moisture_27_to_81cm"],
+         "hourly": self._hourly_fields,
          "timezone": "Europe/Berlin",
-         "models": ["ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", "bom_access_global", "gfs_seamless", "gfs_global", "gfs_hrrr", "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_msm", "jma_gsm", "icon_seamless", "icon_global", "icon_eu", "icon_d2", "gem_seamless", "gem_global", "gem_regional", "gem_hrdps_continental", "meteofrance_seamless", "meteofrance_arpege_world", "meteofrance_arpege_europe", "meteofrance_arome_france", "meteofrance_arome_france_hd", "arpae_cosmo_seamless", "arpae_cosmo_2i", "arpae_cosmo_5m", "metno_seamless", "metno_nordic", "knmi_seamless", "knmi_harmonie_arome_europe", "knmi_harmonie_arome_netherlands", "dmi_seamless", "dmi_harmonie_arome_europe", "ukmo_seamless", "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km"]
+         "models": self._models.values()
       }
       responses = openmeteo.weather_api(url, params=params)
 
-      data_directory = os.path.join(self._basePath, dt.strftime("%Y-%m-%dT%H-%M-%S"))
+      data_directory = os.path.join(self._base_data_dictionary, dt.strftime("%Y-%m-%dT%H-%M-%S"))
 
       if not os.path.exists(data_directory):
          os.makedirs(data_directory)
 
       for (i, response) in enumerate(responses):
-         model = response.Model()
+         model_id = response.Model()
+         model = self._models[model_id]
 
          print(f"Model {model}")
          print(f"Coordinates {response.Latitude()}°N {response.Longitude()}°E")
