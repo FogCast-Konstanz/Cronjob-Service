@@ -1,6 +1,7 @@
 import datetime
 import os
 import openmeteo_requests
+import pathlib
 
 import requests_cache
 import pandas as pd
@@ -13,8 +14,8 @@ class OpenMeteoCronjob(CronjobBase):
 
    def __init__(self):
       super().__init__()
-      script_dir = os.path.dirname(os.path.abspath(__file__))
-      self._basePath = os.path.join(script_dir, "" , "data")
+      script_dir = pathlib.Path(__file__).parent.resolve()
+      self._basePath = os.path.join(script_dir.parent, "data")
       self._lastDataDirectory = None
 
    def start(self, dt: datetime) -> bool:
