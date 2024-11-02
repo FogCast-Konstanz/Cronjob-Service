@@ -6,8 +6,8 @@ import requests_cache
 import pandas as pd
 from retry_requests import retry
 
-from cronjob.cron_base import CronjobBase
-from cronjob.settings import settings
+from cron.jobs.cronjob_base import CronjobBase
+from cron.settings import settings
 
 class OpenMeteoCronjob(CronjobBase):
 

@@ -1,10 +1,9 @@
 #!/usr/bin/python3
-import sys
 import os
 from datetime import datetime
-from cronjob.cron_base import CronjobBase as Cronjob_Interface
-from cronjob.jobs.open_meteo import OpenMeteoCronjob
-from cronjob.settings import settings
+from cron.jobs.cronjob_base import CronjobBase as Cronjob_Interface
+from cron.jobs.open_meteo import OpenMeteoCronjob
+from cron.settings import settings
 
 import logging
 
@@ -12,7 +11,7 @@ os.makedirs(settings.log_dir, exist_ok=True)
 log_file_path = settings.log_dir + '/cron.log'
 logging.basicConfig(filename=log_file_path, filemode='w', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-class Cron:
+class JobScheduler:
 
     __jobs = {
         # Alle 5 Miuten
@@ -117,7 +116,7 @@ class Cron:
         return int(datetime.now().timestamp())
 
     '''Bei Scriptaufruf übergebene Parameter anwenden'''
-    def applyArguemnts(self, args:list) -> None:
+    def applyArguments(self, args:list) -> None:
         if len(args) > 1:
             for i in range (1, len(args), 1):
                 if ('=' not in args[i]):
@@ -136,8 +135,3 @@ class Cron:
                     else: # Falls ein Parameter nicht angewendet wurde, Fehler melden und abbrechen.
                         self._logger.exception ("Argument '{0}' unbekannt, breche ab.".format(args[i]))
                         raise Exception ("Unknown argument key: {0}".format(argKey))
-
-
-cron = Cron()
-cron.applyArguemnts(sys.argv)
-cron.run()

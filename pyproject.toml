@@ -1,7 +1,7 @@
 [project]
-name = "cronjob"
+name = "cron"
 version = "0.1.0"
-description = "Cron job to fetch weather data"
+description = "Cron sheduler for python cron jobs"
 
 dependencies = [
    'openmeteo-requests>=1.3.0',
@@ -13,4 +13,4 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["cronjob"]
+packages = ["cron"]

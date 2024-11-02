@@ -4,7 +4,7 @@ import requests_cache
 import pandas as pd
 from retry_requests import retry
 
-from cronjob.settings import settings
+from cron.settings import settings
 
 
 if __name__ == "__main__":

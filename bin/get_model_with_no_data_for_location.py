@@ -4,7 +4,7 @@ import pathlib
 
 import requests_cache
 from retry_requests import retry
-from cronjob.settings import settings
+from cron.settings import settings
 
 
 if __name__ == "__main__":
