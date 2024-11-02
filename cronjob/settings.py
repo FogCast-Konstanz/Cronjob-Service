@@ -13,6 +13,7 @@ class Settings:
         self.hourly_fields_path = None
         self.latitude = None
         self.longitude = None
+        self.log_dir = None
 
 def load_settings():
     package_dir = pathlib.Path(__package__).parent.resolve()

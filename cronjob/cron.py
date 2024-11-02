@@ -1,11 +1,16 @@
 #!/usr/bin/python3
 import sys
+import os
 from datetime import datetime
 from cronjob.cron_base import CronjobBase as Cronjob_Interface
 from cronjob.jobs.open_meteo import OpenMeteoCronjob
+from cronjob.settings import settings
 
 import logging
-logging.basicConfig(filename='cron.log', filemode='w', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+os.makedirs(settings.log_dir, exist_ok=True)
+log_file_path = settings.log_dir + '/cron.log'
+logging.basicConfig(filename=log_file_path, filemode='w', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 class Cron:
 
