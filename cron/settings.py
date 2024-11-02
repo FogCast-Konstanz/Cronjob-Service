@@ -17,13 +17,13 @@ class Settings:
 
 def load_settings():
     package_dir = pathlib.Path(__package__).parent.resolve()
-    settings_dir = package_dir / "config"
     # Load default settings from settings.json
-    with open(settings_dir / "settings.json", "r") as f:
+    settings_path = package_dir / "settings.json"
+    with open(settings_path, "r") as f:
         settings_json = json.load(f)
 
     # Check if settings.user.json exists and load it if it does
-    user_settings_path = settings_dir / "settings.user.json"
+    user_settings_path = package_dir / "settings.user.json"
     if os.path.exists(user_settings_path):
         with open(user_settings_path, "r") as f:
             user_settings = json.load(f)
