@@ -333,3 +333,4 @@ $RECYCLE.BIN/
 
 **/data
 .cache.sqlite
+**/settings.user.json
