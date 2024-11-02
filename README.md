@@ -25,9 +25,17 @@ This project is licensed under the MIT License.
 
 - Install the project in an editable state `pip install -e .`
 
-## Transfer data from local to remote
+## Transfer data from local to remote (Not needed anymore)
 
 `scp <local_file_path> weatherForecast@141.37.176.3:~/<remote_dir_path>`
+
+
+## Update the code on the remote server
+
+- SSH into the remote server
+- Go to the project directory `cd /home/weatherForecast/Cronjob-Service`
+- Pull the latest changes `git pull`
+
 
 ## Configuration
 
@@ -45,6 +53,7 @@ The default configuration in `config/settings.json` is:
 
 All fields that end on `_path` or `_dir` will be treated as paths.
 If a path is relative, it will be relative to the root of the project.
+So on the server they will be relative to `/home/weatherForecast/Cronjob-Service`.
 
 You can overwrite the default config by creating a `config/settings.user.json` and overwriting the single values.
 The `settings.user.json` is ignored by git.
