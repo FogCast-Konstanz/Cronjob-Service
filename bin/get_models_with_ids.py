@@ -1,20 +1,13 @@
-import datetime
-import os
 import openmeteo_requests
-import pathlib
 
 import requests_cache
 import pandas as pd
 from retry_requests import retry
 
+from cron.settings import settings
+
 
 if __name__ == "__main__":
-
-   
-   script_dir = pathlib.Path(__file__).parent.resolve()
-   base_path = os.path.join(script_dir.parent, "data")
-   config_dir = os.path.join(script_dir.parent, "config")
-   model_ids_path = os.path.join(config_dir, "models.csv")
 
    cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
    retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
@@ -41,8 +34,8 @@ if __name__ == "__main__":
    for model_name in models:
       url = "https://api.open-meteo.com/v1/forecast"
       params = {
-         "latitude": 47.67761561553788,
-         "longitude": 9.190068339473479,
+         "latitude": settings.latitude,
+         "longitude": settings.longitude,
          "hourly": ["temperature_2m"],
          "timezone": "Europe/Berlin",
          "models": [model_name]
@@ -64,4 +57,4 @@ if __name__ == "__main__":
    
    df = pd.DataFrame(model_ids)
    df.sort_values(by="id", inplace=True)
-   df.to_csv(model_ids_path, index=False)
+   df.to_csv(settings.model_ids_path, index=False)
