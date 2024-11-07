@@ -1,7 +1,7 @@
-Model 'gfs_hrrr' has no data for location 47.67761561553788N 9.190068339473479E
-Model 'ncep_nbm_conus' has no data for location 47.67761561553788N 9.190068339473479E
-Model 'jma_msm' has no data for location 47.67761561553788N 9.190068339473479E
-Model 'gem_regional' has no data for location 47.67761561553788N 9.190068339473479E
-Model 'gem_hrdps_continental' has no data for location 47.67761561553788N 9.190068339473479E
-Model 'metno_nordic' has no data for location 47.67761561553788N 9.190068339473479E
-Model 'knmi_harmonie_arome_netherlands' has no data for location 47.67761561553788N 9.190068339473479E
+Model 'gfs_hrrr' has no data for location 47.6952N 9.1307E
+Model 'ncep_nbm_conus' has no data for location 47.6952N 9.1307E
+Model 'jma_msm' has no data for location 47.6952N 9.1307E
+Model 'gem_regional' has no data for location 47.6952N 9.1307E
+Model 'gem_hrdps_continental' has no data for location 47.6952N 9.1307E
+Model 'metno_nordic' has no data for location 47.6952N 9.1307E
+Model 'knmi_harmonie_arome_netherlands' has no data for location 47.6952N 9.1307E
