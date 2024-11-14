@@ -82,6 +82,7 @@ class OpenMeteoInfluxCronjob(CronjobBase):
                 
             write_api.write(bucket=settings.influx.bucket, org="FogCast", record=influx_data)
             print("Wrote", len(influx_data), "rows for", model)
+        write_api.close()
 
     def cleanUpAfterError(self):
         pass

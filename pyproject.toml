@@ -10,7 +10,8 @@ dependencies = [
    'numpy >= 2.1.2',
    'pandas >= 2.2.3',
    'pathlib>=1.0.1',
-   'influxdb-client >=1.47.0'
+   'influxdb-client',
+   'pytz'
 ]
 
 [tool.setuptools]

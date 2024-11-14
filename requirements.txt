@@ -5,3 +5,4 @@ numpy
 pandas
 pathlib
 influxdb-client
+pytz
