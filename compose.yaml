@@ -20,8 +20,27 @@ services:
       - type: bind
         source: <<SOURCE>>
         target: /etc/influxdb2
+  
+  grafana:
+    image: grafana/grafana
+    container_name: fogcast-grafana
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - type: volume
+        source: grafana-data
+        target: /var/lib/grafana
+    depends_on:
+      - influxdb2
+
 secrets:
   influxdb2-admin-username:
     file: ./.env.influxdb2-admin-username
   influxdb2-admin-password:
     file: ./.env.influxdb2-admin-password
+
+volumes:
+  grafana-data:
