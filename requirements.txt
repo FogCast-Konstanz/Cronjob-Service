@@ -4,3 +4,4 @@ retry-requests
 numpy 
 pandas
 pathlib
+influxdb-client

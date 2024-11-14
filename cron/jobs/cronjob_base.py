@@ -17,6 +17,6 @@ class CronjobBase(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def clean_up_after_error(self):
+    def cleanUpAfterError(self):
         '''Trat während der Verarbeitung ein Fehler auf, dann können in dieser Funktion Aufräumarbeiten gemacht werden'''
         raise NotImplementedError

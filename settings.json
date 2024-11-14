@@ -1,8 +1,14 @@
 {
-  "latitude" : 47.6952,
-  "longitude" : 9.1307,
-  "model_ids_path" : "./config/model_ids.csv",
-  "hourly_fields_path" : "./config/hourly_fields.csv",
-  "data_dir" : "./data",
-  "log_dir" : "./logs"
+  "latitude": 47.6952,
+  "longitude": 9.1307,
+  "model_ids_path": "./config/model_ids.csv",
+  "hourly_fields_path": "./config/hourly_fields.csv",
+  "data_dir": "./data",
+  "log_dir": "./logs",
+  "influx": {
+    "url": "http://localhost:8086",
+    "token": "TOKEN",
+    "org": "ORG",
+    "bucket": "BUCKET"
+  }
 }

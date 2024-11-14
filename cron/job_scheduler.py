@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from cron.jobs.cronjob_base import CronjobBase as Cronjob_Interface
 from cron.jobs.open_meteo import OpenMeteoCronjob
+from cron.jobs.open_meteo_influx import OpenMeteoInfluxCronjob
 from cron.settings import settings
 
 import logging
@@ -21,7 +22,8 @@ class JobScheduler:
 
         # Jede Stunde
         60: [
-            OpenMeteoCronjob
+            OpenMeteoCronjob,
+            OpenMeteoInfluxCronjob,
         ],
     }
 
