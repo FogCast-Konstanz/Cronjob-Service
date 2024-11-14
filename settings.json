@@ -8,7 +8,7 @@
   "influx": {
     "url": "http://localhost:8086",
     "token": "TOKEN",
-    "org": "ORG",
+    "org": "FogCast",
     "bucket": "BUCKET"
   }
 }
