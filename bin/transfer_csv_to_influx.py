@@ -1,6 +1,7 @@
 from datetime import datetime
 import pytz
 import os
+from pathlib import Path
 
 import pandas as pd
 import influxdb_client
@@ -26,11 +27,12 @@ if __name__ == "__main__":
         for model in models:
             df = pd.read_csv(os.path.join(settings.data_dir, query, model))
             influx_data = []
+            model_name = Path(model).stem
 
             for index, row in df.iterrows():
                 point = Point("forecast")
                 point.time(utc_time, WritePrecision.S)
-                point.tag("model", model)
+                point.tag("model", model_name)
                 point.tag("latitude", settings.latitude)
                 point.tag("longitude", settings.longitude)
                 point.tag("forecast_date", row["date"])
@@ -54,6 +56,6 @@ if __name__ == "__main__":
                 influx_data.append(point)
             
             write_api.write(bucket=settings.influx.bucket, org="FogCast", record=influx_data)
-            print("Wrote", len(influx_data), "rows for", model)
+            print("Wrote", len(influx_data), "rows for", model_name)
         print(">>> Wrote", len(models), "models for", query)
     write_api.close()
