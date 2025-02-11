@@ -20,6 +20,12 @@ services:
       - type: bind
         source: <<SOURCE>>
         target: /etc/influxdb2
+  
+  data-miner:
+    build: .
+    container_name: fogcast-data-miner
+    depends_on:
+      - influxdb2
 
 secrets:
   influxdb2-admin-username:
