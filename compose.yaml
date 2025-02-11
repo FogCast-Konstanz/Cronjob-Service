@@ -15,10 +15,10 @@ services:
       - influxdb2-admin-password
     volumes:
       - type: bind
-        source: <<SOURCE>>
+        source: ./influx-data
         target: /var/lib/influxdb2
       - type: bind
-        source: <<SOURCE>>
+        source: ./influx-conf
         target: /etc/influxdb2
   
   data-miner:
