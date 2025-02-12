@@ -26,6 +26,13 @@ services:
     container_name: fogcast-data-miner
     depends_on:
       - influxdb2
+    volumes:
+      - type: bind
+        source: ./csv-data
+        target: /app/data
+      - type: bind
+        source: ./cron-logs
+        target: /app/logs
 
 secrets:
   influxdb2-admin-username:
