@@ -8,7 +8,7 @@ RUN pip install -r /app/requirements.txt
 COPY . /app
 WORKDIR /app
 
-RUN pip install .
+RUN pip install -e .
 
 RUN crontab -u root crontab.txt
 

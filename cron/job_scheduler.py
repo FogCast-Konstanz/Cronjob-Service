@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import os
 from datetime import datetime
 from cron.jobs.cronjob_base import CronjobBase as Cronjob_Interface
