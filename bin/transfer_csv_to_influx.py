@@ -57,6 +57,5 @@ if __name__ == "__main__":
                 influx_data.append(point)
             
             write_api.write(bucket=settings.influx.bucket, org="FogCast", record=influx_data)
-            print("Wrote", len(influx_data), "rows for", model_name)
         print(">>> Wrote", len(models), "models for", directory)
     write_api.close()
