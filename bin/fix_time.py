@@ -18,7 +18,7 @@ if __name__ == "__main__":
         try:
             local_time = datetime.strptime(local_time, "%Y-%m-%dT%H-%M-%S")
         except ValueError:
-            print(f"Skipping query due to invalid date format: {local_time}")
+            print(f"Skipping query due to new date format: {local_time}")
             continue
         
         berlin = pytz.timezone("CET")
@@ -28,10 +28,6 @@ if __name__ == "__main__":
         models = os.listdir(os.path.join(settings.data_dir, query))
         for model in models:
             df = pd.read_csv(os.path.join(settings.data_dir, query, model))
-            
-
-            
-            write_api.write(bucket=settings.influx.bucket, org="FogCast", record=influx_data)
-            print("Wrote", len(influx_data), "rows for", model_name)
-        print(">>> Wrote", len(models), "models for", query)
-    write_api.close()
+            df["date"] = df["date"].apply(lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S+00:00").replace(tzinfo=berlin).astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
+            df.to_csv(os.path.join(settings.data_dir, utc_time.strftime("%Y-%m-%dT%H:%M:%SZ"), model), index=False)
+        
