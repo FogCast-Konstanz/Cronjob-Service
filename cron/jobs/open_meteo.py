@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 import os
 import openmeteo_requests
 
@@ -23,6 +23,7 @@ class OpenMeteoCronjob(CronjobBase):
         self._hourly_fields = [row['field'] for _, row in hourly_fields_df.iterrows()]
 
     def start(self, dt: datetime) -> bool:
+        utc_dt = dt.astimezone(timezone.utc)
         cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
         retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
         openmeteo = openmeteo_requests.Client(session = retry_session)
@@ -34,12 +35,12 @@ class OpenMeteoCronjob(CronjobBase):
             "latitude": settings.latitude,
             "longitude": settings.longitude,
             "hourly": self._hourly_fields,
-            "timezone": "Europe/Berlin",
+            "timezone": "GMT",
             "models": self._models.values()
         }
         responses = openmeteo.weather_api(url, params=params)
 
-        data_directory = os.path.join(settings.data_dir, dt.strftime("%Y-%m-%dT%H-%M-%S"))
+        data_directory = os.path.join(settings.data_dir, utc_dt.strftime("%Y-%m-%dT%H-%M-%SZ"))
 
         if not os.path.exists(data_directory):
             os.makedirs(data_directory)

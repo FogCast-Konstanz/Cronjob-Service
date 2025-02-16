@@ -46,12 +46,15 @@ def toDataFrame(response):
     hourly_soil_moisture_9_to_27cm = hourly.Variables(40).ValuesAsNumpy()
     hourly_soil_moisture_27_to_81cm = hourly.Variables(41).ValuesAsNumpy()
 
-    hourly_data = {"date": pd.date_range(
+    dates = pd.date_range(
       start = pd.to_datetime(hourly.Time(), unit = "s", utc = True),
       end = pd.to_datetime(hourly.TimeEnd(), unit = "s", utc = True),
       freq = pd.Timedelta(seconds = hourly.Interval()),
-      inclusive = "left"
-    )}
+      inclusive = "left",
+      tz="UTC",
+    )
+    dates = dates.map(lambda x: x.strftime("%Y-%m-%dT%H:%M:%SZ"))
+    hourly_data = {"date": dates }
     hourly_data["temperature_2m"] = hourly_temperature_2m
     hourly_data["relative_humidity_2m"] = hourly_relative_humidity_2m
     hourly_data["dew_point_2m"] = hourly_dew_point_2m

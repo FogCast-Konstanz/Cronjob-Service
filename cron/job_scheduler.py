@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from cron.jobs.cronjob_base import CronjobBase as Cronjob_Interface
 from cron.jobs.open_meteo import OpenMeteoCronjob
 from cron.jobs.open_meteo_influx import OpenMeteoInfluxCronjob
@@ -34,7 +34,7 @@ class JobScheduler:
     def run(self):
         try:
             self._logger.info('## Cron gestartet')
-            dt = datetime.now()
+            dt = datetime.now(timezone.utc).astimezone()
             self._logger.info('CronJob: dt.hour = {0}, dt.minute = {1}'.format(dt.hour, dt.minute))
             startTime = int(dt.timestamp())
             if self._run_single_job_now == None:

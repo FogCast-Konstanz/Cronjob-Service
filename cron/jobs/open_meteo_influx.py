@@ -27,6 +27,7 @@ class OpenMeteoInfluxCronjob(CronjobBase):
         self.client = influxdb_client.InfluxDBClient(url=settings.influx.url, token=settings.influx.token, org=settings.influx.org)
 
     def start(self, dt: datetime) -> bool:
+        utc_dt = dt.astimezone(timezone.utc)
         cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
         retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
         openmeteo = openmeteo_requests.Client(session = retry_session)
@@ -38,12 +39,10 @@ class OpenMeteoInfluxCronjob(CronjobBase):
             "latitude": settings.latitude,
             "longitude": settings.longitude,
             "hourly": self._hourly_fields,
-            "timezone": "Europe/Berlin",
+            "timezone": "GMT",
             "models": self._models.values()
         }
         responses = openmeteo.weather_api(url, params=params)
-        
-        timestamp = datetime.now(timezone.utc)
         
         write_api = self.client.write_api(write_options=SYNCHRONOUS)
 
@@ -56,7 +55,7 @@ class OpenMeteoInfluxCronjob(CronjobBase):
 
             for index, row in df.iterrows():
                 point = Point("forecast")
-                point.time(timestamp, WritePrecision.S)
+                point.time(utc_dt, WritePrecision.S)
                 point.tag("model", model)
                 point.tag("latitude", settings.latitude)
                 point.tag("longitude", settings.longitude)
