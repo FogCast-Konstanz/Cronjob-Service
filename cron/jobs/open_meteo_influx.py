@@ -26,8 +26,8 @@ class OpenMeteoInfluxCronjob(CronjobBase):
 
         self.client = influxdb_client.InfluxDBClient(url=settings.influx.url, token=settings.influx.token, org=settings.influx.org)
 
-    def start(self, dt: datetime) -> bool:
-        utc_dt = dt.astimezone(timezone.utc)
+    def start(self, local_dt: datetime) -> bool:
+        utc_dt = local_dt.astimezone(timezone.utc)
         cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
         retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
         openmeteo = openmeteo_requests.Client(session = retry_session)

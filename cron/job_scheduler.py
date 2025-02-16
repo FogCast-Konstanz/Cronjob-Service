@@ -34,11 +34,11 @@ class JobScheduler:
     def run(self):
         try:
             self._logger.info('## Cron gestartet')
-            dt = datetime.now(timezone.utc).astimezone()
-            self._logger.info('CronJob: dt.hour = {0}, dt.minute = {1}'.format(dt.hour, dt.minute))
-            startTime = int(dt.timestamp())
+            local_dt = datetime.now(timezone.utc).astimezone()
+            self._logger.info('CronJob: dt.hour = {0}, dt.minute = {1}'.format(local_dt.hour, local_dt.minute))
+            startTime = int(local_dt.timestamp())
             if self._run_single_job_now == None:
-                jobs = self.getJobs(dt)
+                jobs = self.getJobs(local_dt)
             else:
                 jobs = self.getRunSingleJobNow()
 
@@ -52,12 +52,12 @@ class JobScheduler:
                 self._logger.info('CronJob ' + jobNameAsStr + ': Prüfen')
 
                 # datetime übergeben, da die Abarbeitung der Jobs lange dauern könnte
-                if (job.shouldStart(dt) or self._run_single_job_now is not None):
+                if (job.shouldStart(local_dt) or self._run_single_job_now is not None):
                     self._logger.info('CronJob ' + jobNameAsStr + ': Start')
 
                     try: 
                         # Cronjob starten
-                        if (job.start(dt) == False):
+                        if (job.start(local_dt) == False):
                             self._logger.warning('CronJob ' + jobNameAsStr + ': Kontrollierter Abbruch')
 
                             # Bei kontrolliertem Abbruch Bereinigung starten

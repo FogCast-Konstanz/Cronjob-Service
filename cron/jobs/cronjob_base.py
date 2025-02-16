@@ -4,7 +4,7 @@ from datetime import datetime
 class CronjobBase(metaclass=abc.ABCMeta):
     '''Basis-Klasse für Cronjobs'''
 
-    def shouldStart(self, dt: datetime) -> bool:
+    def shouldStart(self, local_dt: datetime) -> bool:
          '''Ob der job in der aktuellen Umgebung ausgeführt werden darf.
             Kann evtl. Zusatzbedingungen für einen Cronjob definieren, die vor Ausführung
             geprüft werden.
@@ -12,7 +12,7 @@ class CronjobBase(metaclass=abc.ABCMeta):
          return True
 
     @abc.abstractmethod
-    def start(self, dt: datetime) -> bool:
+    def start(self, local_dt: datetime) -> bool:
         '''Führt diesen Job aus'''
         raise NotImplementedError
 
