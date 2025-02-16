@@ -1,12 +1,8 @@
-from datetime import datetime, timezone
+from datetime import datetime
 import pytz
 import os
-from pathlib import Path
 
 import pandas as pd
-import influxdb_client
-from influxdb_client import Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS
 
 from cron.settings import settings
 

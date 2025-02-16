@@ -11,21 +11,22 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 from cron.settings import settings
 
 if __name__ == "__main__":
-    queries = os.listdir(settings.data_dir)
+    directories = os.listdir(settings.data_dir)
 
     client = influxdb_client.InfluxDBClient(url=settings.influx.url, token=settings.influx.token, org=settings.influx.org)
     write_api = client.write_api(write_options=SYNCHRONOUS)
 
-    for query in queries:
-        local_time = query
-        local_time = datetime.strptime(local_time, "%Y-%m-%dT%H-%M-%S")
-        berlin = pytz.timezone("CET")
-        local_time.replace(tzinfo=berlin)
-        utc_time = local_time.astimezone(pytz.utc)
+    for directory in directories:
+        utc_time = directory
+        try:
+            utc_time = datetime.strptime(utc_time, "%Y-%m-%dT%H-%M-%SZ")
+        except ValueError:
+            print(f"Skipping query due to old date format: {utc_time}")
+            continue
 
-        models = os.listdir(os.path.join(settings.data_dir, query))
+        models = os.listdir(os.path.join(settings.data_dir, directory))
         for model in models:
-            df = pd.read_csv(os.path.join(settings.data_dir, query, model))
+            df = pd.read_csv(os.path.join(settings.data_dir, directory, model))
             influx_data = []
             model_name = Path(model).stem
 
@@ -57,5 +58,5 @@ if __name__ == "__main__":
             
             write_api.write(bucket=settings.influx.bucket, org="FogCast", record=influx_data)
             print("Wrote", len(influx_data), "rows for", model_name)
-        print(">>> Wrote", len(models), "models for", query)
+        print(">>> Wrote", len(models), "models for", directory)
     write_api.close()
