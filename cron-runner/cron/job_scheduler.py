@@ -36,7 +36,6 @@ class JobScheduler:
             self._logger.info('## Cron gestartet')
             local_dt = datetime.now(timezone.utc).astimezone()
             self._logger.info('CronJob: dt.hour = {0}, dt.minute = {1}'.format(local_dt.hour, local_dt.minute))
-            startTime = int(local_dt.timestamp())
             if self._run_single_job_now == None:
                 jobs = self.getJobs(local_dt)
             else:
@@ -46,7 +45,6 @@ class JobScheduler:
 
                 runTimeJobStart = self._getTimestamp()
                 jobNameAsStr = jobName.__name__
-                taskOk = True
                 
                 job: Cronjob_Interface = jobName()
                 self._logger.info('CronJob ' + jobNameAsStr + ': Prüfen')
@@ -66,7 +64,6 @@ class JobScheduler:
                         runTimeJob = self._getTimestamp() - runTimeJobStart
                         self._logger.info('CronJob ' + jobNameAsStr + ': Beendet Laufzeit in s: ' + str(runTimeJob))
                     except Exception:
-                        taskOk = False
                         self._logger.exception('Abbruch durch Fehler im CronJob: ' + jobNameAsStr)
 
                         if 'job' in locals():
@@ -75,9 +72,6 @@ class JobScheduler:
                 else: 
                     runTimeJob = self._getTimestamp() - runTimeJobStart
                     self._logger.info('CronJob ' + jobNameAsStr + ': Nichts zu tun. Laufzeit in s: ' + str(runTimeJob))
-
-            runTimeCron = self._getTimestamp() - startTime
-            self._logger.info('## Cron Durchlauf beendet; Laufzeit in s: ' + str(runTimeCron))
 
         except Exception:
             self._logger.exception('Abbruch durch Fehler in der cron Logik')
