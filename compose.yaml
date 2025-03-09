@@ -47,6 +47,7 @@ services:
       - LOG_PATH=/app/logs/cron.log
     ports:
       - "8000:8000"
+    command: gunicorn -w 3 -t 60 -b 0.0.0.0:8000 app:app
     healthcheck:
       test: [ "CMD-SHELL", "curl --silent --fail http://fogcast-status-reporter:8000/health-check || exit 1" ]
       interval: 10s
