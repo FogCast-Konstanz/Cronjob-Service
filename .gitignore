@@ -3,6 +3,7 @@
 .cache.sqlite
 **/settings.user.json
 .env.*
+logs/
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,pycharm+all,visualstudiocode,windows,linux,powershell
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,pycharm+all,visualstudiocode,windows,linux,powershell
