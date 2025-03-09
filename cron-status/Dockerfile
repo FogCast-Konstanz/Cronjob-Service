@@ -32,4 +32,4 @@ RUN pip install polars-lts-cpu --force-reinstall
 # define the port number the container should expose
 EXPOSE 8000
 
-CMD ["gunicorn", "-w 3", "-t 60", "-b 0.0.0.0:8000", "app:app"]
+CMD ["python", "app.py"]
