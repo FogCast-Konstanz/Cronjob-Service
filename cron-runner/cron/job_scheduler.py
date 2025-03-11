@@ -67,8 +67,11 @@ class JobScheduler:
                     except Exception as e:
                         self._logger.exception('Abbruch durch Fehler im CronJob: ' + jobNameAsStr)
                         error_message = (
-                            f"Cronjob {jobNameAsStr} failed at {datetime.now().isoformat()} "
-                            f"with error: {str(e)}"
+                            f"**⚠️ Cronjob Fehler**\n"
+                            f"**Cronjob:** `{jobNameAsStr}`\n"
+                            f"**Zeit:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n"
+                            f"**Fehlermeldung:**\n"
+                            f"```\n{str(e)}\n```"
                         )
                         self._webhook.send(error_message)
 
