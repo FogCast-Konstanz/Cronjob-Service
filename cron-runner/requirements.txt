@@ -6,3 +6,4 @@ pandas
 pathlib
 influxdb-client
 pytz
+discord.py

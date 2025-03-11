@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timezone
+from discord import SyncWebhook
 from cron.jobs.cronjob_base import CronjobBase as Cronjob_Interface
 from cron.jobs.open_meteo import OpenMeteoCronjob
 from cron.jobs.open_meteo_influx import OpenMeteoInfluxCronjob
@@ -29,7 +30,7 @@ class JobScheduler:
     def __init__(self) -> None:
         self._logger = logging.getLogger()
         self._run_single_job_now = None
-
+        self._webhook = SyncWebhook.from_url(settings.discord.webhook_url)
 
     def run(self):
         try:
@@ -63,8 +64,13 @@ class JobScheduler:
 
                         runTimeJob = self._getTimestamp() - runTimeJobStart
                         self._logger.info('CronJob ' + jobNameAsStr + ': Beendet Laufzeit in s: ' + str(runTimeJob))
-                    except Exception:
+                    except Exception as e:
                         self._logger.exception('Abbruch durch Fehler im CronJob: ' + jobNameAsStr)
+                        error_message = (
+                            f"Cronjob {jobNameAsStr} failed at {datetime.now().isoformat()} "
+                            f"with error: {str(e)}"
+                        )
+                        self._webhook.send(error_message)
 
                         if 'job' in locals():
                             job.cleanUpAfterError()

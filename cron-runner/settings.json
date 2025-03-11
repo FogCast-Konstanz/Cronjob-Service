@@ -10,5 +10,8 @@
     "token": "TOKEN",
     "org": "FogCast",
     "bucket": "WeatherForecast"
+  },
+  "discord": {
+    "webhook_url": ""  
   }
 }
