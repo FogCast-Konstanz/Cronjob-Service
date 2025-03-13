@@ -7,7 +7,7 @@ import pandas as pd
 from retry_requests import retry
 
 from cron.jobs.cronjob_base import CronjobBase
-from cron.jobs.toDataFrame import toDataFrame
+from cron.jobs.toDataFrame import extract_model_data
 from cron.settings import settings
 
 class OpenMeteoCronjob(CronjobBase):
@@ -36,7 +36,8 @@ class OpenMeteoCronjob(CronjobBase):
             "longitude": settings.longitude,
             "hourly": self._hourly_fields,
             "timezone": "GMT",
-            "models": self._models.values()
+            "models": self._models.values(),
+            "forecast_days": 16
         }
         responses = openmeteo.weather_api(url, params=params)
 
@@ -48,10 +49,9 @@ class OpenMeteoCronjob(CronjobBase):
         for (i, response) in enumerate(responses):
             model_id = response.Model()
             model = self._models[model_id]
-
             print("Received data for model: {}".format(model))
+            df = extract_model_data(response, self._hourly_fields)
 
-            df = toDataFrame(response)
             df.to_csv("{}/{}.csv".format(data_directory, model), index=False)
             
         self._lastDataDirectory = data_directory

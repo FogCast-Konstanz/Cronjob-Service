@@ -41,3 +41,14 @@ soil_moisture_1_to_3cm
 soil_moisture_3_to_9cm
 soil_moisture_9_to_27cm
 soil_moisture_27_to_81cm
+uv_index_clear_sky
+is_day
+uv_index
+vapour_pressure_deficit
+sunshine_duration
+wet_bulb_temperature_2m
+cape
+lifted_index
+convective_inhibition
+freezing_level_height
+boundary_layer_height

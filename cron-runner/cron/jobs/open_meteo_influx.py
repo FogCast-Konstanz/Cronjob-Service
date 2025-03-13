@@ -9,7 +9,7 @@ from influxdb_client import Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 from cron.jobs.cronjob_base import CronjobBase
-from cron.jobs.toDataFrame import toDataFrame
+from cron.jobs.toDataFrame import extract_model_data
 from cron.settings import settings
 
 
@@ -40,7 +40,8 @@ class OpenMeteoInfluxCronjob(CronjobBase):
             "longitude": settings.longitude,
             "hourly": self._hourly_fields,
             "timezone": "GMT",
-            "models": self._models.values()
+            "models": self._models.values(),
+            "forecast_days": 16
         }
         responses = openmeteo.weather_api(url, params=params)
         
@@ -49,7 +50,7 @@ class OpenMeteoInfluxCronjob(CronjobBase):
         for (i, response) in enumerate(responses):
             model_id = response.Model()
             model = self._models[model_id]
-            df = toDataFrame(response)
+            df = extract_model_data(response, self._hourly_fields)
 
             influx_data = []
 
@@ -62,13 +63,6 @@ class OpenMeteoInfluxCronjob(CronjobBase):
                 point.tag("forecast_date", row["date"])
 
                 row = row.drop("date")
-
-                is_nan = row.isna()
-                if is_nan.sum() == len(row):
-                    # if all values are NaN, skip this row
-                    # this can happen if the forecast is too far in the future 
-                    # and the model does not provide data yet
-                    continue
 
                 for key, value in row.items():
                     if pd.isna(value):
