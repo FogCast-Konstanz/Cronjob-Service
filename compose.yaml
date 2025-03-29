@@ -2,6 +2,7 @@ services:
   influxdb2:
     image: influxdb:2
     container_name: fogcast-influxdb2
+    restart: always
     ports:
       - 8086:8086
     environment:
@@ -24,6 +25,7 @@ services:
   cron-runner:
     build: cron-runner
     container_name: fogcast-cron-runner
+    restart: always
     depends_on:
       - influxdb2
     volumes:
@@ -37,6 +39,7 @@ services:
   status-reporter:
     build: cron-status
     container_name: fogcast-status-reporter
+    restart: always
     depends_on:
       - cron-runner
     volumes:
