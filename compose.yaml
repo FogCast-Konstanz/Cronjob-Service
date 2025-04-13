@@ -1,33 +1,8 @@
 services:
-  influxdb2:
-    image: influxdb:2
-    container_name: fogcast-influxdb2
-    restart: always
-    ports:
-      - 8086:8086
-    environment:
-      DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_USERNAME_FILE: /run/secrets/influxdb2-admin-username
-      DOCKER_INFLUXDB_INIT_PASSWORD_FILE: /run/secrets/influxdb2-admin-password
-      DOCKER_INFLUXDB_INIT_ORG: FogCast
-      DOCKER_INFLUXDB_INIT_BUCKET: WeatherForecast
-    secrets:
-      - influxdb2-admin-username
-      - influxdb2-admin-password
-    volumes:
-      - type: bind
-        source: ./influx-data
-        target: /var/lib/influxdb2
-      - type: bind
-        source: ./influx-conf
-        target: /etc/influxdb2
-  
   cron-runner:
     build: cron-runner
     container_name: fogcast-cron-runner
     restart: always
-    depends_on:
-      - influxdb2
     volumes:
       - type: bind
         source: ./csv-data
@@ -35,6 +10,8 @@ services:
       - type: bind
         source: ./cron-logs
         target: /app/logs
+    networks:
+      - proxy-net
 
   status-reporter:
     build: cron-status
@@ -48,17 +25,15 @@ services:
         target: /app/logs
     environment:
       - LOG_PATH=/app/logs/cron.log
-    ports:
-      - "8000:8000"
     command: gunicorn -w 3 -t 60 -b 0.0.0.0:8000 app:app
     healthcheck:
       test: [ "CMD-SHELL", "curl --silent --fail http://fogcast-status-reporter:8000/health-check || exit 1" ]
       interval: 10s
       timeout: 10s
       retries: 3
+    networks:
+      - proxy-net
 
-secrets:
-  influxdb2-admin-username:
-    file: ./.env.influxdb2-admin-username
-  influxdb2-admin-password:
-    file: ./.env.influxdb2-admin-password
+networks:
+  proxy-net:
+    external: true

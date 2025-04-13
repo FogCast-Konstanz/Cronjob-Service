@@ -45,7 +45,7 @@ def read_cronjob_status():
 
     return {'status': status}
 
-@app.route('/cronjob-status', methods=['GET'])
+@app.route('/status', methods=['GET'])
 def cronjob_status():
     status = read_cronjob_status()
     return jsonify(status)
