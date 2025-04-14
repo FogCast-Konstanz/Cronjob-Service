@@ -30,7 +30,7 @@ class JobScheduler:
     def __init__(self) -> None:
         self._logger = logging.getLogger()
         self._run_single_job_now = None
-        self._webhook = SyncWebhook.from_url(settings.discord.webhook_url)
+        self._webhook = SyncWebhook.from_url(settings.discord.webhook_url) if settings.discord.webhook_url != "" else None
 
     def run(self):
         try:
@@ -66,6 +66,8 @@ class JobScheduler:
                         self._logger.info('CronJob ' + jobNameAsStr + ': Beendet Laufzeit in s: ' + str(runTimeJob))
                     except Exception as e:
                         self._logger.exception('Abbruch durch Fehler im CronJob: ' + jobNameAsStr)
+                        print('Abbruch durch Fehler im CronJob: ' + jobNameAsStr)
+                        print(e)
                         error_message = (
                             f"**⚠️ Cronjob Fehler**\n"
                             f"**Cronjob:** `{jobNameAsStr}`\n"
@@ -73,7 +75,8 @@ class JobScheduler:
                             f"**Fehlermeldung:**\n"
                             f"```\n{str(e)}\n```"
                         )
-                        self._webhook.send(error_message)
+                        if self._webhook is not None:
+                            self._webhook.send(error_message)
 
                         if 'job' in locals():
                             job.cleanUpAfterError()
