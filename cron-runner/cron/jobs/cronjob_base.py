@@ -1,8 +1,13 @@
 import abc
 from datetime import datetime
+from discord import SyncWebhook
+from cron.settings import settings
 
 class CronjobBase(metaclass=abc.ABCMeta):
     '''Basis-Klasse für Cronjobs'''
+
+    def __init__(self):
+        self._webhook = SyncWebhook.from_url(settings.discord.webhook_url) if settings.discord.webhook_url != "" else None
 
     def shouldStart(self, local_dt: datetime) -> bool:
          '''Ob der job in der aktuellen Umgebung ausgeführt werden darf.

@@ -69,10 +69,10 @@ class JobScheduler:
                         print('Abbruch durch Fehler im CronJob: ' + jobNameAsStr)
                         print(e)
                         error_message = (
-                            f"**⚠️ Cronjob Fehler**\n"
+                            f"**⚠️ Cronjob error**\n"
+                            f"**time:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n"
                             f"**Cronjob:** `{jobNameAsStr}`\n"
-                            f"**Zeit:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n"
-                            f"**Fehlermeldung:**\n"
+                            f"**Error message:**\n"
                             f"```\n{str(e)}\n```"
                         )
                         if self._webhook is not None:

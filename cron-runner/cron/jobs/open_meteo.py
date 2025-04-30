@@ -45,8 +45,17 @@ class OpenMeteoCronjob(CronjobBase):
 
             try:
                 responses = openmeteo.weather_api(url, params=params)
-            except Exception:
+            except Exception as e:
                 print("Unable to request data for model ", model)
+                error_message = (
+                            f"**⚠️ Cronjob Warning**\n"
+                            f"**Time:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n"
+                            f"**Unable to request data for model {model}**\n"
+                            f"**Error message:**\n"
+                            f"```\n{str(e)}\n```"
+                        )
+                if self._webhook is not None:
+                    self._webhook.send(error_message)
                 continue
 
             response = responses[0]
