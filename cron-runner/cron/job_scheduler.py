@@ -2,8 +2,8 @@ import os
 from datetime import datetime, timezone
 from discord import SyncWebhook
 from cron.jobs.cronjob_base import CronjobBase as Cronjob_Interface
-from cron.jobs.open_meteo import OpenMeteoCronjob
-from cron.jobs.open_meteo_influx import OpenMeteoInfluxCronjob
+from cron.jobs.open_meteo_csv_cronjob import OpenMeteoCsvCronjob
+from cron.jobs.open_meteo_influx_cronjob import OpenMeteoInfluxCronjob
 from cron.settings import settings
 
 import logging
@@ -22,7 +22,7 @@ class JobScheduler:
 
         # Jede Stunde
         60: [
-            OpenMeteoCronjob,
+            OpenMeteoCsvCronjob,
             OpenMeteoInfluxCronjob,
         ],
     }

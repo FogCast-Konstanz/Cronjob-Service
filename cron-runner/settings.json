@@ -6,7 +6,7 @@
   "data_dir": "./csv-data",
   "log_dir": "./logs",
   "influx": {
-    "url": "http://localhost:8086",
+    "url": "http://fogcast-influxdb:8086",
     "token": "TOKEN",
     "org": "FogCast",
     "bucket": "WeatherForecast"
