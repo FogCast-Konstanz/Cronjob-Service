@@ -28,25 +28,28 @@ class OpenMeteoCronjob(CronjobBase):
         retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
         openmeteo = openmeteo_requests.Client(session = retry_session)
 
-        # Make sure all required weather variables are listed here
-        # The order of variables in hourly or daily is important to assign them correctly below
-        url = "https://api.open-meteo.com/v1/forecast"
-        params = {
-            "latitude": settings.latitude,
-            "longitude": settings.longitude,
-            "hourly": self._hourly_fields,
-            "timezone": "GMT",
-            "models": self._models.values(),
-            "forecast_days": 16
-        }
-        responses = openmeteo.weather_api(url, params=params)
-
         data_directory = os.path.join(settings.data_dir, utc_dt.strftime("%Y-%m-%dT%H-%M-%SZ"))
-
+        url = "https://api.open-meteo.com/v1/forecast"
         if not os.path.exists(data_directory):
             os.makedirs(data_directory)
 
-        for (i, response) in enumerate(responses):
+        for model in self._models.values():
+            params = {
+                "latitude": settings.latitude,
+                "longitude": settings.longitude,
+                "hourly": self._hourly_fields,
+                "timezone": "GMT",
+                "models": [model],
+                "forecast_days": 16
+            }
+
+            try:
+                responses = openmeteo.weather_api(url, params=params)
+            except Exception:
+                print("Unable to request data for model ", model)
+                continue
+
+            response = responses[0]
             model_id = response.Model()
             model = self._models[model_id]
             print("Received data for model: {}".format(model))
