@@ -19,7 +19,7 @@ This project is licensed under the MIT License.
    - Create virtual env
       - `python -m venv venv`
    - Activate virtual env
-      - `. venv/bin/activate (Linux) or ./venv/Scripts/activate (Win)`
+      - `. venv/bin/activate (Linux) or ./venv/Scripts/activate (Win) or source ./venv/bin/activate (Mac)`
    - Deactivate virtual env
       - `deactivate`
 
@@ -34,7 +34,7 @@ This project is licensed under the MIT License.
 
 - SSH into the remote server
 - Go to the project directory `cd /home/weatherForecast/Cronjob-Service`
-- Pull the latest changes `git pull`
+- Fetch and pull the latest changes `git fetch & git pull`
 
 
 ## Configuration
