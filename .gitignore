@@ -2,6 +2,7 @@
 *-conf/
 .cache.sqlite
 **/settings.user.json
+.DS_Store
 .env.*
 logs/
 
