@@ -65,3 +65,9 @@ If you e.g. want to change the path where the results are located, create a `con
   "data_dir" : "<CUSTOM_PATH>"
 }
 ```
+
+## Development
+Test single Cronjob inside Docker Container
+```
+python bin/main.py run_single_job_now=<cronjob_class_name>
+```
