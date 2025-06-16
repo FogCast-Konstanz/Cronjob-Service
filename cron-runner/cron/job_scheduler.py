@@ -5,6 +5,7 @@ from cron.jobs.cronjob_base import CronjobBase as Cronjob_Interface
 from cron.jobs.open_meteo_csv_cronjob import OpenMeteoCsvCronjob
 from cron.jobs.open_meteo_influx_cronjob import OpenMeteoInfluxCronjob
 from cron.jobs.water_level.pegel_online_cronjob import PegelOnlineCronjob
+from cron.jobs.model_benchmarking.benchmarking_cronjob import BenchmarkingCronjob
 from cron.settings import settings
 
 import logging
@@ -25,6 +26,7 @@ class JobScheduler:
         60: [
             OpenMeteoCsvCronjob,
             OpenMeteoInfluxCronjob,
+            BenchmarkingCronjob
         ],
         
         # Jeden Tag
