@@ -159,7 +159,8 @@ class BenchmarkingService:
     def run_benchmark(self, current_date=None):
         warnings.simplefilter("ignore")
         if current_date is None:
-            current_date = datetime.now().replace(minute=0, second=0, microsecond=0).astimezone(pytz.UTC).strftime("%Y-%m-%d %H:%M:%S")
+            current_date = datetime.now()
+        current_date = current_date.replace(minute=0, second=0, microsecond=0).astimezone(pytz.UTC).strftime("%Y-%m-%d %H:%M:%S")
         self._process_vs_error(current_date)
         self._process_s_error(current_date)
         self._process_m_error(current_date)
