@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from cron.settings import settings
 import warnings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import openmeteo_requests
 import requests_cache
 from retry_requests import retry
@@ -54,10 +54,10 @@ class BenchmarkingService:
         )
         self.bucket = 'WeatherForecast'
 
-    def get_forecasts(self, daysBackwards):
+    def get_forecasts(self, start_time, end_time):
         query = f'''
             from(bucket: "{self.bucket}") 
-                |> range(start: -{daysBackwards}d)
+                |> range(start: {start_time.isoformat()}, stop: {end_time.isoformat()})
                 |> filter(fn : (r) => r["_field"] == "temperature_2m"
                     or r["_field"] == "relative_humidity_2m"
                     or r["_field"] == "precipitation"
@@ -103,11 +103,10 @@ class BenchmarkingService:
             write_api.write(bucket=self.bucket, org=settings.influx.org, record=batch)
         print("\nMigration completed.")
 
-    def get_measured(self, currentDate, daysBackwards):
+    def get_measured(self, start_time, end_time):
         cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
         retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
         openmeteo = openmeteo_requests.Client(session=retry_session)
-        start_date = (datetime.fromisoformat(currentDate) - timedelta(days=daysBackwards)).strftime("%Y-%m-%d %H:%M:%S")
         url = "https://api.open-meteo.com/v1/forecast"
         params = {
             "latitude": 47.6952,
@@ -117,8 +116,8 @@ class BenchmarkingService:
                 "precipitation", "relative_humidity_2m", "dew_point_2m"
             ],
             "timezone": "Europe/Berlin",
-            "start_date": datetime.fromisoformat(start_date).date(),
-            "end_date": datetime.fromisoformat(currentDate).date(),
+            "start_date": start_time.date(),
+            "end_date": end_time.date(),
         }
         responses = openmeteo.weather_api(url, params=params)
         response = responses[0]
@@ -156,11 +155,9 @@ class BenchmarkingService:
             "date", "result", "table"
         ], errors='ignore')
 
-    def run_benchmark(self, current_date=None):
+    def run_benchmark(self):
         warnings.simplefilter("ignore")
-        if current_date is None:
-            current_date = datetime.now()
-        current_date = current_date.replace(minute=0, second=0, microsecond=0).astimezone(pytz.UTC).strftime("%Y-%m-%d %H:%M:%S")
+        current_date = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
         self._process_vs_error(current_date)
         self._process_s_error(current_date)
         self._process_m_error(current_date)
@@ -169,8 +166,16 @@ class BenchmarkingService:
     def _process_vs_error(self, current_date):
         start_time = time()
         print("Method _process_vs_error started...")
-        forecasts = self.get_forecasts(1)
-        measured = self.get_measured(current_date, 1)
+
+        end_dt = datetime.fromisoformat(current_date).replace(tzinfo=pytz.UTC)
+        start_dt = end_dt - timedelta(days=1)
+
+        forecasts = self.get_forecasts(start_dt, end_dt)
+        measured = self.get_measured(start_dt, end_dt)
+
+        forecasts["_time"] = pd.to_datetime(forecasts["_time"]).dt.floor('S')
+        measured["date"] = pd.to_datetime(measured["date"]).dt.floor('S')
+
         merged = forecasts.merge(measured, left_on="_time", right_on="date", how="inner")
         error_df = self.calculate_error(merged)
         error_df['forecast_horizon'] = 'very short'
@@ -178,42 +183,77 @@ class BenchmarkingService:
         self.write_data_to_influxdb(error_df)
         elapsed = time() - start_time
         print(f"Method _process_vs_error finished successfully in {elapsed:.2f} seconds.")
-
+    
     def _process_s_error(self, current_date):
         start_time = time()
         print("Method _process_s_error started...")
-        forecasts = self.get_forecasts(3)
-        measured = self.get_measured(current_date, 3)
+
+        end_dt = datetime.fromisoformat(current_date).replace(tzinfo=pytz.UTC)
+        start_dt = end_dt - timedelta(days=3)
+
+        forecasts = self.get_forecasts(start_dt, end_dt)
+        measured = self.get_measured(start_dt, end_dt)
+
+        forecasts["_time"] = pd.to_datetime(forecasts["_time"]).dt.floor('S')
+        measured["date"] = pd.to_datetime(measured["date"]).dt.floor('S')
+
         merged = forecasts.merge(measured, left_on="_time", right_on="date", how="inner")
+        print(f"Merged records: {len(merged)}")
+
         error_df = self.calculate_error(merged)
         error_df['forecast_horizon'] = 'short'
         print(f"Writing {len(error_df)} short error records to InfluxDB")
+
         self.write_data_to_influxdb(error_df)
         elapsed = time() - start_time
         print(f"Method _process_s_error finished successfully in {elapsed:.2f} seconds.")
 
+
     def _process_m_error(self, current_date):
         start_time = time()
         print("Method _process_m_error started...")
-        forecasts = self.get_forecasts(7)
-        measured = self.get_measured(current_date, 7)
+
+        end_dt = datetime.fromisoformat(current_date).replace(tzinfo=pytz.UTC)
+        start_dt = end_dt - timedelta(days=7)
+
+        forecasts = self.get_forecasts(start_dt, end_dt)
+        measured = self.get_measured(start_dt, end_dt)
+
+        forecasts["_time"] = pd.to_datetime(forecasts["_time"]).dt.floor('S')
+        measured["date"] = pd.to_datetime(measured["date"]).dt.floor('S')
+
         merged = forecasts.merge(measured, left_on="_time", right_on="date", how="inner")
+        print(f"Merged records: {len(merged)}")
+
         error_df = self.calculate_error(merged)
         error_df['forecast_horizon'] = 'medium'
         print(f"Writing {len(error_df)} medium error records to InfluxDB")
+
         self.write_data_to_influxdb(error_df)
         elapsed = time() - start_time
         print(f"Method _process_m_error finished successfully in {elapsed:.2f} seconds.")
 
+
     def _process_l_error(self, current_date):
         start_time = time()
         print("Method _process_l_error started...")
-        forecasts = self.get_forecasts(15)
-        measured = self.get_measured(current_date, 15)
+
+        end_dt = datetime.fromisoformat(current_date).replace(tzinfo=pytz.UTC)
+        start_dt = end_dt - timedelta(days=15)
+
+        forecasts = self.get_forecasts(start_dt, end_dt)
+        measured = self.get_measured(start_dt, end_dt)
+
+        forecasts["_time"] = pd.to_datetime(forecasts["_time"]).dt.floor('S')
+        measured["date"] = pd.to_datetime(measured["date"]).dt.floor('S')
+
         merged = forecasts.merge(measured, left_on="_time", right_on="date", how="inner")
+        print(f"Merged records: {len(merged)}")
+
         error_df = self.calculate_error(merged)
         error_df['forecast_horizon'] = 'long'
         print(f"Writing {len(error_df)} long error records to InfluxDB")
+
         self.write_data_to_influxdb(error_df)
         elapsed = time() - start_time
         print(f"Method _process_l_error finished successfully in {elapsed:.2f} seconds.")

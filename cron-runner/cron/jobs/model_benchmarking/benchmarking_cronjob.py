@@ -15,7 +15,7 @@ class BenchmarkingCronjob(CronjobBase):
     def start(self, local_dt: datetime) -> bool:
         try:
             service = BenchmarkingService()
-            service.run_benchmark(local_dt)
+            service.run_benchmark()
             return True
         except BaseException as e:
             logging.exception(f"Error in BenchmarkingCronjob", exc_info=e)
