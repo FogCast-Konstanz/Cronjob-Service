@@ -97,12 +97,10 @@ class BenchmarkingService:
             if len(batch) == batch_size:
                 write_api.write(bucket=self.bucket, org=settings.influx.org, record=batch)
                 batch = []
-            if index % 1000 == 0 or index == total_rows - 1:
-                print(f"\rWriting {index + 1}/{total_rows} {next(progress_bar)}", end="")
+
         if batch:
             write_api.write(bucket=self.bucket, org=settings.influx.org, record=batch)
-        print("\nMigration completed.")
-
+ 
     def get_measured(self, start_time, end_time):
         cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
         retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
@@ -165,8 +163,6 @@ class BenchmarkingService:
 
     def _process_vs_error(self, current_date):
         start_time = time()
-        print("Method _process_vs_error started...")
-
         end_dt = datetime.fromisoformat(current_date).replace(tzinfo=pytz.UTC)
         start_dt = end_dt - timedelta(days=1)
 
@@ -179,14 +175,12 @@ class BenchmarkingService:
         merged = forecasts.merge(measured, left_on="_time", right_on="date", how="inner")
         error_df = self.calculate_error(merged)
         error_df['forecast_horizon'] = 'very short'
-        print(f"Writing {len(error_df)} very short error records to InfluxDB")
         self.write_data_to_influxdb(error_df)
         elapsed = time() - start_time
-        print(f"Method _process_vs_error finished successfully in {elapsed:.2f} seconds.")
+        print(f"Method _process_vs_error finished successfully in {elapsed:.2f} seconds and wrote {len(error_df)} records to InfluxDB.")
     
     def _process_s_error(self, current_date):
         start_time = time()
-        print("Method _process_s_error started...")
 
         end_dt = datetime.fromisoformat(current_date).replace(tzinfo=pytz.UTC)
         start_dt = end_dt - timedelta(days=3)
@@ -198,20 +192,17 @@ class BenchmarkingService:
         measured["date"] = pd.to_datetime(measured["date"]).dt.floor('S')
 
         merged = forecasts.merge(measured, left_on="_time", right_on="date", how="inner")
-        print(f"Merged records: {len(merged)}")
 
         error_df = self.calculate_error(merged)
         error_df['forecast_horizon'] = 'short'
-        print(f"Writing {len(error_df)} short error records to InfluxDB")
 
         self.write_data_to_influxdb(error_df)
         elapsed = time() - start_time
-        print(f"Method _process_s_error finished successfully in {elapsed:.2f} seconds.")
+        print(f"Method _process_s_error finished successfully in {elapsed:.2f} seconds and wrote {len(error_df)} records to InfluxDB.")
 
 
     def _process_m_error(self, current_date):
         start_time = time()
-        print("Method _process_m_error started...")
 
         end_dt = datetime.fromisoformat(current_date).replace(tzinfo=pytz.UTC)
         start_dt = end_dt - timedelta(days=7)
@@ -223,20 +214,17 @@ class BenchmarkingService:
         measured["date"] = pd.to_datetime(measured["date"]).dt.floor('S')
 
         merged = forecasts.merge(measured, left_on="_time", right_on="date", how="inner")
-        print(f"Merged records: {len(merged)}")
 
         error_df = self.calculate_error(merged)
         error_df['forecast_horizon'] = 'medium'
-        print(f"Writing {len(error_df)} medium error records to InfluxDB")
 
         self.write_data_to_influxdb(error_df)
         elapsed = time() - start_time
-        print(f"Method _process_m_error finished successfully in {elapsed:.2f} seconds.")
+        print(f"Method _process_m_error finished successfully in {elapsed:.2f} seconds and wrote {len(error_df)} records to InfluxDB.")
 
 
     def _process_l_error(self, current_date):
         start_time = time()
-        print("Method _process_l_error started...")
 
         end_dt = datetime.fromisoformat(current_date).replace(tzinfo=pytz.UTC)
         start_dt = end_dt - timedelta(days=15)
@@ -248,12 +236,10 @@ class BenchmarkingService:
         measured["date"] = pd.to_datetime(measured["date"]).dt.floor('S')
 
         merged = forecasts.merge(measured, left_on="_time", right_on="date", how="inner")
-        print(f"Merged records: {len(merged)}")
 
         error_df = self.calculate_error(merged)
         error_df['forecast_horizon'] = 'long'
-        print(f"Writing {len(error_df)} long error records to InfluxDB")
 
         self.write_data_to_influxdb(error_df)
         elapsed = time() - start_time
-        print(f"Method _process_l_error finished successfully in {elapsed:.2f} seconds.")
+        print(f"Method _process_l_error finished successfully in {elapsed:.2f} seconds and wrote {len(error_df)} records to InfluxDB.")
