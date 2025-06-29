@@ -13,7 +13,7 @@ class BenchmarkingCronjob(CronjobBase):
         super().__init__()
         
     def start(self, local_dt: datetime) -> bool:
-        print(f"Starting BenchmarkingCronjob at {local_dt.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Starting BenchmarkingCronjob at {local_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC")
         try:
             service = BenchmarkingService()
             service.run_benchmark()
