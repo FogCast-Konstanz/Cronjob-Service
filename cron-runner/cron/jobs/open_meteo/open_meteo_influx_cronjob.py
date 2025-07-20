@@ -5,7 +5,7 @@ import influxdb_client
 from influxdb_client import Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-from cron.jobs.open_meteo_cronjob import OpenMeteoCronjob
+from cron.jobs.open_meteo.open_meteo_cronjob import OpenMeteoCronjob
 from cron.jobs.toDataFrame import extract_model_data
 from cron.settings import settings
 

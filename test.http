@@ -1,0 +1,3 @@
+### Test query
+GET https://api.open-meteo.com/v1/forecast?latitude=47.6952&longitude=9.1307&hourly=temperature_2m&timezone=GMT&models=icon_d2&forecast_days=16 HTTP/1.1
+

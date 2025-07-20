@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import os
 
 
-from cron.jobs.open_meteo_cronjob import OpenMeteoCronjob
+from cron.jobs.open_meteo.open_meteo_cronjob import OpenMeteoCronjob
 from cron.jobs.toDataFrame import extract_model_data
 from cron.settings import settings
 
