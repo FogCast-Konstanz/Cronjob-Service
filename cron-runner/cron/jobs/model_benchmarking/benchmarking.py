@@ -1,33 +1,19 @@
-import influxdb_client
-from influxdb_client import Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS
-import os
-import numpy as np
-import pandas as pd
-from cron.settings import settings
 import warnings
-from datetime import datetime, timedelta, timezone
-import openmeteo_requests
+import pandas as pd
 import requests_cache
+import openmeteo_requests
 from retry_requests import retry
-import itertools
-import pytz
-from time import time
+from datetime import datetime, timedelta, timezone
+from influxdb_client.client.write_api import SYNCHRONOUS
+from influxdb_client import Point
+import influxdb_client
+from cron.settings import settings
 
 class BenchmarkingService:
     def __init__(self):
-        self.models = [
-            "ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", "bom_access_global",
-            "gfs_seamless", "gfs_global", "gfs_hrrr", "ncep_nbm_conus", "gfs_graphcast025",
-            "jma_seamless", "jma_msm", "jma_gsm", "icon_seamless", "icon_global", "icon_eu", "icon_d2",
-            "gem_seamless", "gem_global", "gem_regional", "gem_hrdps_continental",
-            "meteofrance_seamless", "meteofrance_arpege_world", "meteofrance_arpege_europe",
-            "meteofrance_arome_france", "meteofrance_arome_france_hd", "metno_seamless", "metno_nordic",
-            "knmi_seamless", "knmi_harmonie_arome_europe", "knmi_harmonie_arome_netherlands",
-            "dmi_seamless", "dmi_harmonie_arome_europe", "ukmo_seamless", "ukmo_global_deterministic_10km",
-            "ukmo_uk_deterministic_2km"
-        ]
-        self.vs_models = ["gfs_hrrr"]
+        # vs models currently not used because it is only one model
+        # self.vs_models = ["gfs_hrrr"]
+
         self.s_models = [
             "icon_d2", "gem_regional", "gem_hrdps_continental", "meteofrance_arome_france",
             "meteofrance_arome_france_hd", "metno_seamless", "metno_nordic", "knmi_seamless",
@@ -44,19 +30,27 @@ class BenchmarkingService:
             "gfs_seamless", "gfs_global", "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_gsm",
             "gem_seamless", "gem_global"
         ]
+
         self.client = influxdb_client.InfluxDBClient(
             url=settings.influx.url,
             token=settings.influx.token,
             org=settings.influx.org,
-            timeout=120_000,
+            timeout=300_000,
             verify_ssl=False,  # Disable SSL verification for self-signed certificates
             http_client_kwargs={"timeout": 300}
         )
-        self.bucket = 'WeatherForecast'
+        self.forecastBucket = 'WeatherForecast'
+        self.benchmarkingBucket = "benchmark_score"
+    
+    def get_forecasts(self, start_time, end_time, models):
+        
+        models_flux_array = "[" + ", ".join(f'"{m}"' for m in models) + "]"
 
-    def get_forecasts(self, start_time, end_time):
         query = f'''
-            from(bucket: "{self.bucket}") 
+        models = {models_flux_array}
+        startForecast = time(v: {start_time.isoformat()})
+        endForecast   = time(v: {end_time.isoformat()})
+            from(bucket: "{self.forecastBucket}")
                 |> range(start: {start_time.isoformat()}, stop: {end_time.isoformat()})
                 |> filter(fn : (r) => r["_field"] == "temperature_2m"
                     or r["_field"] == "relative_humidity_2m"
@@ -64,7 +58,11 @@ class BenchmarkingService:
                     or r["_field"] == "cloud_cover"
                     or r["_field"] == "surface_pressure"
                     or r["_field"] == "dew_point_2m")
-                |> keep(columns: ["_time", "forecast_date", "model", "_value", "_field"])
+                |> filter(fn: (r) =>
+                    time(v: r.forecast_date) >= startForecast and
+                    time(v: r.forecast_date) <= endForecast
+                ) |> filter(fn: (r) => contains(value: r.model, set: models) )
+                |> keep(columns: ["_time","forecast_date", "model", "_value", "_field"])
         '''
         try:
             query_api = self.client.query_api()
@@ -75,28 +73,6 @@ class BenchmarkingService:
             raise
         return df
     
-    def write_data_to_influxdb(self, df: pd.DataFrame, batch_size: int = 5000):
-        total_rows = len(df)
-        batch = []
-        progress_bar = itertools.cycle(["|", "/", "-", "\\"])
-        write_api = self.client.write_api(write_options=SYNCHRONOUS)
-        for index, row in df.iterrows():
-            point = Point("error_score") \
-                .field("_value", float(row["_value"])) \
-                .field("actual_value", float(row["actual_value"])) \
-                .field("error", float(row["error"])) \
-                .tag("feature", str(row["_field"])) \
-                .tag("forecast_date", str(row["forecast_date"])) \
-                .tag("_model", str(row["model"])) \
-                .tag("forecast_horizon", str(row["forecast_horizon"])) \
-                .time(row["_time"].tz_convert('UTC') if row["_time"].tzinfo else row["_time"].tz_localize('UTC'))
-            batch.append(point)
-            if len(batch) == batch_size:
-                write_api.write(bucket=self.bucket, org=settings.influx.org, record=batch)
-                batch = []
-        if batch:
-            write_api.write(bucket=self.bucket, org=settings.influx.org, record=batch)
-
     def get_measured(self, start_time, end_time):
         cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
         retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
@@ -130,67 +106,100 @@ class BenchmarkingService:
             "relative_humidity_2m": hourly.Variables(4).ValuesAsNumpy(),
             "dew_point_2m": hourly.Variables(5).ValuesAsNumpy()
         }
-        return pd.DataFrame(data=hourly_data)
+        df_measured = pd.DataFrame(hourly_data)
 
-    def calculate_error(self, df):
-        df['actual_value'] = df.apply(
-            lambda row: row[row['_field']] if row['_field'] in df.columns else np.nan,
+        # Melt DataFrame to long format for merge
+        df_measured = df_measured.melt(
+            id_vars=["date"],
+            var_name="_field",
+            value_name="actual_value"
+        )
+
+        return df_measured
+    
+    def calculate_error(self, df_forecasts, df_measured, forecast_date, lead_time):
+        #1 Merge df
+        df_forecasts["forecast_date"] = pd.to_datetime(df_forecasts["forecast_date"], utc=True)
+        df_measured["date"] = pd.to_datetime(df_measured["date"], utc=True)
+
+        merged_df = df_forecasts.merge(
+            df_measured,
+            left_on=["forecast_date", "_field"],
+            right_on=["date", "_field"],
+            how="inner"
+        )
+
+        #2 Calculate error
+        merged_df['abs_error'] = (merged_df['_value'] - merged_df['actual_value']).abs()
+        merged_df['squared_error'] = (merged_df['_value'] - merged_df['actual_value']) ** 2
+
+        error_df = merged_df.groupby(["model", "_field"]).agg(
+            mae=('abs_error', 'mean'),
+            mse=('squared_error', 'mean'),
+            rmse=('squared_error', lambda x: (x.mean())**0.5),
+        ).reset_index()
+
+        error_df["selected_error"] = error_df.apply(
+            lambda row: row["mae"] if row["_field"] in ["relative_humidity_2m", "cloud_cover"] 
+                    else row["rmse"], 
             axis=1
         )
-        def compute_error(row):
-            if row['_field'] in ['cloud_cover', 'relative_humidity_2m']:
-                return abs(row['_value'] - row['actual_value'])
-            else:
-                return (row['_value'] - row['actual_value']) ** 2
-        df['error'] = df.apply(compute_error, axis=1)
-        return df.drop(columns=[
-            "temperature_2m", "relative_humidity_2m", "dew_point_2m",
-            "cloud_cover", "surface_pressure", "precipitation",
-            "date", "result", "table"
-        ], errors='ignore')
+
+        # Structure as table to save as one row per model
+        pivot_df = error_df.pivot_table(
+            index=["model"],             
+            columns="_field",          
+            values="selected_error"       
+        ).reset_index()
+
+        pivot_df["lead_time"] = lead_time 
+        pivot_df["forecast_date"] = forecast_date
+
+        return pivot_df
+    
+
+    def write_data_to_influxdb(self, df: pd.DataFrame):
+        
+        batch = []
+       
+        write_api = self.client.write_api(write_options=SYNCHRONOUS)
+        for _, row in df.iterrows():
+            point = (
+                Point("forecast_error")
+                .tag("model", row["model"])
+                .tag("lead_time", row["lead_time"])
+                .field("forecast_date", row["forecast_date"].isoformat())
+                .field("cloud_cover", float(row["cloud_cover"]))
+                .field("relative_humidity_2m", float(row["relative_humidity_2m"]))
+                .field("temperature_2m", float(row["temperature_2m"]))
+                .field("surface_pressure", float(row["surface_pressure"]))
+                .field("dew_point_2m", float(row["dew_point_2m"]))          
+                .field("precipitation", float(row["precipitation"]))
+            )
+            batch.append(point)
+        write_api.write(bucket=self.benchmarkingBucket, org="FogCast", record=batch)
+
+    def generic_benchmark(self, models, end_time, daysback, lead_time):
+        start_time = end_time - timedelta(days=daysback)
+
+        print(f"Collecting data from {start_time} to {end_time} for models: {models}")
+        df_forecasts = self.get_forecasts(start_time, end_time, models)
+
+        print(f"Fetching the measured data for the same period.")
+        measured_df = self.get_measured(start_time, end_time)
+
+        print(f"Calculating error scores.")
+        error_df = self.calculate_error(df_forecasts, measured_df, end_time, lead_time)
+        print(error_df)
+
+        print(f"Writing data to InfluxDB.")
+        self.write_data_to_influxdb(error_df) 
 
     def run_benchmark(self):
         warnings.simplefilter("ignore")
         current_date = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
-        self._process_vs_error(current_date)
-        self._process_s_error(current_date)
-        self._process_m_error(current_date)
-        self._process_l_error(current_date)
-
-    def _process_generic_error(self, current_date, days_back, horizon_label):
-        start_time = time()
-        end_dt = current_date.replace(hour=23, minute=59, second=59, microsecond=0)
-        start_dt = (current_date - timedelta(days=days_back)).replace(hour=0, minute=0, second=0, microsecond=0)
-
-        forecasts = self.get_forecasts(start_dt, end_dt)
-        measured = self.get_measured(start_dt, end_dt)
-
-        print(f"Forecast Range: {forecasts['_time'].min()} - {forecasts['_time'].max()}")
-        print(f"Measured Range: {measured['date'].min()} - {measured['date'].max()}")
-
-        forecasts["_time"] = pd.to_datetime(forecasts["_time"]).dt.floor('S')
-        measured["date"] = pd.to_datetime(measured["date"]).dt.floor('S')
-
-        merged = forecasts.merge(measured, left_on="_time", right_on="date", how="inner")
-        print(f"Merged Records: {len(merged)}")
-        if merged.empty:
-            print("Warning: No records merged. Check data alignment.")
-
-        error_df = self.calculate_error(merged)
-        error_df['forecast_horizon'] = horizon_label
-
-        self.write_data_to_influxdb(error_df)
-        elapsed = time() - start_time
-        print(f"Method _process_{horizon_label}_error finished in {elapsed:.2f} seconds and wrote {len(error_df)} records.")
-
-    def _process_vs_error(self, current_date):
-        self._process_generic_error(current_date, 1, 'very short')
-
-    def _process_s_error(self, current_date):
-        self._process_generic_error(current_date, 3, 'short')
-
-    def _process_m_error(self, current_date):
-        self._process_generic_error(current_date, 7, 'medium')
-
-    def _process_l_error(self, current_date):
-        self._process_generic_error(current_date, 15, 'long')
+        
+        # Run benchmarks for different models and timeframes
+        self.generic_benchmark(self.s_models, current_date, 3, "s")
+        self.generic_benchmark(self.m_models, current_date, 7, "m")
+        self.generic_benchmark(self.l_models, current_date, 15, "l")
