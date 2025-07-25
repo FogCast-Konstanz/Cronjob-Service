@@ -11,24 +11,28 @@ from cron.settings import settings
 
 class BenchmarkingService:
     def __init__(self):
-        # vs models currently not used because it is only one model
-        # self.vs_models = ["gfs_hrrr"]
-
+        # 24 hours
         self.s_models = [
-            "icon_d2", "gem_regional", "gem_hrdps_continental", "meteofrance_arome_france",
-            "meteofrance_arome_france_hd", "metno_seamless", "metno_nordic", "knmi_seamless",
-            "knmi_harmonie_arome_europe", "knmi_harmonie_arome_netherlands", "dmi_seamless",
-            "dmi_harmonie_arome_europe", "ukmo_uk_deterministic_2km"
+            "ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", "bom_access_global", "gfs_seamless",
+            "gfs_global", "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_msm", "jma_gsm", "icon_seamless",
+            "icon_global", "icon_eu", "icon_d2", "gem_seamless", "gem_global", "gem_regional", "gem_hrdps_continental",
+            "meteofrance_seamless", "meteofrance_arpege_world", "meteofrance_arpege_europe", "meteofrance_arome_france",
+            "meteofrance_arome_france_hd", "metno_seamless", "metno_nordic", "knmi_seamless", "knmi_harmonie_arome_europe",
+            "knmi_harmonie_arome_netherlands", "dmi_seamless", "dmi_harmonie_arome_europe", "ukmo_seamless",
+            "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km"
         ]
+        # 3 days/72 hours
         self.m_models = [
-            "jma_msm", "icon_seamless", "icon_global", "icon_eu", "meteofrance_seamless",
-            "meteofrance_arpege_world", "meteofrance_arpege_europe", "ukmo_seamless",
-            "ukmo_global_deterministic_10km"
+            "ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", "bom_access_global", "gfs_seamless",
+            "gfs_global", "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_msm", "jma_gsm", "icon_seamless",
+            "icon_global", "icon_eu", "gem_seamless", "gem_global", "gem_regional", "meteofrance_seamless", 
+            "meteofrance_arpege_world", "meteofrance_arpege_europe", "ukmo_seamless", "ukmo_global_deterministic_10km"
         ]
+        # 7 days/168 hours
         self.l_models = [
-            "ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", "bom_access_global",
-            "gfs_seamless", "gfs_global", "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_gsm",
-            "gem_seamless", "gem_global"
+            "ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", "bom_access_global", "gfs_seamless",
+            "gfs_global", "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_gsm", "icon_seamless",
+            "icon_global", "gem_seamless", "gem_global", "ukmo_seamless", "ukmo_global_deterministic_10km"
         ]
 
         self.client = influxdb_client.InfluxDBClient(
@@ -200,6 +204,6 @@ class BenchmarkingService:
         current_date = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
         
         # Run benchmarks for different models and timeframes
-        self.generic_benchmark(self.s_models, current_date, 3, "s")
-        self.generic_benchmark(self.m_models, current_date, 7, "m")
-        self.generic_benchmark(self.l_models, current_date, 15, "l")
+        self.generic_benchmark(self.s_models, current_date, 1, "s")
+        self.generic_benchmark(self.m_models, current_date, 3, "m")
+        self.generic_benchmark(self.l_models, current_date, 7, "l")
