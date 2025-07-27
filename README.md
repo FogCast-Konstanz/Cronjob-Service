@@ -143,3 +143,7 @@ Contributions are welcome! Please open an issue or submit a pull request.
 ## License
 
 This project is licensed under the MIT License.
+
+## Future Work
+- **Backup**: Server and all the data should be backuped regularly.
+- **Solar Log Data**: Save the SolarLog Data via Cronjob to the database.
