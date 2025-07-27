@@ -113,7 +113,7 @@ To update the code on the remote server please read adn follow these instruction
 - **OpenMeteoCSVJob** (`open_meteo_csv_cronjob.py`): Converts weather data into CSV format for local storage.
 - **OpenMeteoInfluxJob** (`open_meteo_influx_cronjob.py`): Transfers weather data to an InfluxDB instance for real-time monitoring and analysis.
 - **BenchmarkingCronJob** (`benchmarking_cronjob.py`): Benchmarks weather models by comparing their predictions against actual data.
-- **BenchmarkingCronJob** (`pegel_online_cronjob.py`): Fetches the water levels of Lake of Constance and Seerhein from Pegel Online and DWD.
+- **PegelOnlineCronjob** (`pegel_online_cronjob.py`): Fetches the water levels of Lake of Constance and Seerhein from Pegel Online and DWD.
 
 ### Key Files
 
