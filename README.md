@@ -1,6 +1,13 @@
 # Cronjob Service
 
-This repository contains a cron job service that fetches weather data from the OpenMeteo API and processes it for various use cases, including transferring data to InfluxDB and benchmarking models.
+This repository contains a cron job service that runs regularly job to collect weather data from several sources and processes it for various use cases, including transferring data to InfluxDB and benchmarking models.
+
+## Data Sources
+
+Currently we collect data from these sources:
+- [Open-Meteo](https://open-meteo.com/)
+- [Pegel Online](https://www.pegelonline.wsv.de/gast/start)
+- [DWD](https://dwd.api.bund.dev/)
 
 ## Folder Structure
 
@@ -26,6 +33,18 @@ This repository contains a cron job service that fetches weather data from the O
   - Activate virtual env: `. venv/bin/activate (Linux/Mac)` or `./venv/Scripts/activate (Win)`
   - Deactivate virtual env: `deactivate`
 - Install the project in an editable state: `pip install -e .`
+- Create development settings.user.json (`cron-runner/settings.user.json`) file and add your influx credentials: 
+`
+{
+  "influx": {
+    "url": "",
+    "token": "",
+    "org": "",
+    "bucket": ""
+  }
+}
+`
+- Build project in docker `docker-compose up -d --build`
 
 ## Configuration
 
@@ -69,10 +88,13 @@ You can overwrite the default config by creating a `config/settings.user.json` a
 
 ## Usage
 
-### Run Single Cronjob
+### Run a Single Cronjob
 
-Test a single cron job inside a Docker container:
-
+Get in the docker container:
+```bash
+docker exec -it fogcast-cron-runner /bin/sh
+```
+Run the Cronjob now:
 ```bash
 python bin/main.py run_single_job_now=<cronjob_class_name>
 ```
@@ -81,11 +103,7 @@ python bin/main.py run_single_job_now=<cronjob_class_name>
 
 ### Update Code on Remote Server
 
-- SSH into the remote server.
-- Navigate to the project directory: `cd /home/weatherForecast/Cronjob-Service`.
-- Fetch and pull the latest changes: `git fetch & git pull`.
-- Rebuild the Docker image: `docker compose build`.
-- Restart the cron job service: `docker compose up -d`.
+To update the code on the remote server please read adn follow these instructions: [FogCast](https://github.com/FogCast-Konstanz/FogCast)
 
 ## Detailed Description of Cron Jobs and Files
 
@@ -95,6 +113,7 @@ python bin/main.py run_single_job_now=<cronjob_class_name>
 - **OpenMeteoCSVJob** (`open_meteo_csv_cronjob.py`): Converts weather data into CSV format for local storage.
 - **OpenMeteoInfluxJob** (`open_meteo_influx_cronjob.py`): Transfers weather data to an InfluxDB instance for real-time monitoring and analysis.
 - **BenchmarkingCronJob** (`benchmarking_cronjob.py`): Benchmarks weather models by comparing their predictions against actual data.
+- **BenchmarkingCronJob** (`pegel_online_cronjob.py`): Fetches the water levels of Lake of Constance and Seerhein from Pegel Online and DWD.
 
 ### Key Files
 
