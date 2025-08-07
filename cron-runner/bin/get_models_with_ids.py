@@ -14,19 +14,20 @@ if __name__ == "__main__":
    openmeteo = openmeteo_requests.Client(session = retry_session)
 
    models = [
-      "ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", 
-      "bom_access_global", "gfs_seamless", "gfs_global", "gfs_hrrr", 
-      "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_msm", 
-      "jma_gsm", "icon_seamless", "icon_global", "icon_eu", "icon_d2", 
-      "gem_seamless", "gem_global", "gem_regional", "gem_hrdps_continental", 
-      "meteofrance_seamless", "meteofrance_arpege_world", 
-      "meteofrance_arpege_europe", "meteofrance_arome_france", 
-      "meteofrance_arome_france_hd", "arpae_cosmo_seamless", 
-      "arpae_cosmo_2i", "arpae_cosmo_5m", "metno_seamless", "metno_nordic", 
-      "knmi_seamless", "knmi_harmonie_arome_europe", 
-      "knmi_harmonie_arome_netherlands", "dmi_seamless", 
-      "dmi_harmonie_arome_europe", "ukmo_seamless", 
-      "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km"
+        "ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", 
+        "bom_access_global", "gfs_seamless", "gfs_global", "gfs_hrrr", 
+        "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_msm", 
+        "jma_gsm", "icon_seamless", "icon_global", "icon_eu", "icon_d2", 
+        "gem_seamless", "gem_global", "gem_regional", "gem_hrdps_continental", 
+        "meteofrance_seamless", "meteofrance_arpege_world", 
+        "meteofrance_arpege_europe", "meteofrance_arome_france", 
+        "meteofrance_arome_france_hd", "arpae_cosmo_seamless", 
+        "arpae_cosmo_2i", "arpae_cosmo_5m", "metno_seamless", "metno_nordic", 
+        "knmi_seamless", "knmi_harmonie_arome_europe", 
+        "knmi_harmonie_arome_netherlands", "dmi_seamless", 
+        "dmi_harmonie_arome_europe", "ukmo_seamless", 
+        "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km",
+        "meteoswiss_icon_seamless","meteoswiss_icon_ch2", "meteoswiss_icon_ch1"
    ]
 
    model_ids = []
