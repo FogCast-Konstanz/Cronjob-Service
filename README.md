@@ -50,7 +50,7 @@ Cronjob-Service/
 - **InfluxDB Integration**: Real-time data storage and time-series management
 - **CSV Export**: Local data storage in structured CSV format
 - **Model Benchmarking**: Automated performance analysis of weather prediction models
-- **Water Level Monitoring**: Lake Constance and Rhine water level tracking
+- **Water Level Monitoring**: Lake Constance and Rhein water level tracking
 
 ### System Architecture
 - **Type-safe Configuration**: Modern settings management with validation
@@ -233,7 +233,7 @@ The job scheduler runs automatically with these intervals:
 
 #### **PegelOnlineCronjob**
 - **Purpose**: Monitors water levels at measurement stations
-- **Locations**: Konstanz Rhine, Konstanz Bodensee
+- **Locations**: Konstanz Rhein, Konstanz Bodensee
 - **Frequency**: Daily updates
 - **Storage**: InfluxDB with station metadata
 
