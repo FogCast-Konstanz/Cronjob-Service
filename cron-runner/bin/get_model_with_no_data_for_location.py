@@ -7,7 +7,7 @@ from retry_requests import retry
 from cron.settings import settings
 
 
-if __name__ == "__main__":
+def main():
    script_dir = pathlib.Path(__file__).parent.resolve()
    base_path = os.path.join(script_dir.parent, "data")
 
@@ -36,3 +36,7 @@ if __name__ == "__main__":
          if(e.args[0]['reason'] == "No data is available for this location"):
             print(f"Model '{model}' has no data for location {latitude}N {longitude}E")
          continue
+
+
+if __name__ == "__main__":
+    main()

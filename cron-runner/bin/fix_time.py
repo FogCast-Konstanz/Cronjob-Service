@@ -6,7 +6,8 @@ import pandas as pd
 
 from cron.settings import settings
 
-if __name__ == "__main__":
+
+def main():
     directories = os.listdir(settings.data_dir)
 
     for directory in directories:
@@ -28,4 +29,8 @@ if __name__ == "__main__":
             df = pd.read_csv(os.path.join(settings.data_dir, directory, model))
             df["date"] = df["date"].apply(lambda x: berlin.localize(datetime.strptime(x, "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
             df.to_csv(os.path.join(settings.data_dir, utc_time.strftime("%Y-%m-%dT%H-%M-%SZ"), model), index=False)
+
+
+if __name__ == "__main__":
+    main()
         

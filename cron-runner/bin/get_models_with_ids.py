@@ -7,8 +7,7 @@ from retry_requests import retry
 from cron.settings import settings
 
 
-if __name__ == "__main__":
-
+def main():
    cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
    retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
    openmeteo = openmeteo_requests.Client(session = retry_session)
@@ -59,3 +58,7 @@ if __name__ == "__main__":
    df = pd.DataFrame(model_ids)
    df.sort_values(by="id", inplace=True)
    df.to_csv(settings.model_ids_path, index=False)
+
+
+if __name__ == "__main__":
+    main()

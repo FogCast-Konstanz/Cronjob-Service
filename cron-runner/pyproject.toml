@@ -19,5 +19,12 @@ dependencies = [
    'discord.py'
 ]
 
+[project.scripts]
+cron-main = "bin.main:main"
+transfer-csv-to-influx = "bin.transfer_csv_to_influx:main"
+fix-time = "bin.fix_time:main"
+get-models-with-ids = "bin.get_models_with_ids:main"
+get-model-with-no-data-for-location = "bin.get_model_with_no_data_for_location:main"
+
 [tool.setuptools]
-packages = ["cron"]
+packages = ["cron", "bin"]

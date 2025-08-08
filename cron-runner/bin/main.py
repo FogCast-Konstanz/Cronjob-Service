@@ -2,6 +2,11 @@ import sys
 from cron.job_scheduler import JobScheduler
 
 
-cron = JobScheduler()
-cron.applyArguments(sys.argv)
-cron.run()
+def main():
+    cron = JobScheduler()
+    cron.apply_arguments(sys.argv)
+    cron.run()
+
+
+if __name__ == "__main__":
+    main()

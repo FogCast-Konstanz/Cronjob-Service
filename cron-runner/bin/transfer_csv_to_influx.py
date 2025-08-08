@@ -10,7 +10,8 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 
 from cron.settings import settings
 
-if __name__ == "__main__":
+
+def main():
     directories = os.listdir(settings.data_dir)
 
     client = influxdb_client.InfluxDBClient(url=settings.influx.url, token=settings.influx.token, org=settings.influx.org)
@@ -59,3 +60,7 @@ if __name__ == "__main__":
             write_api.write(bucket=settings.influx.bucket, org="FogCast", record=influx_data)
         print(">>> Wrote", len(models), "models for", directory)
     write_api.close()
+
+
+if __name__ == "__main__":
+    main()
