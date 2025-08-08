@@ -4,10 +4,10 @@ import requests_cache
 import openmeteo_requests
 from retry_requests import retry
 from datetime import datetime, timedelta, timezone
+from influxdb_client.client.influxdb_client import InfluxDBClient
+from influxdb_client.client.write.point import Point
 from influxdb_client.client.write_api import SYNCHRONOUS
-from influxdb_client import Point
-import influxdb_client
-from cron.settings import settings
+from cron.settings_utils import get_influx_config, get_coordinates
 
 
 class BenchmarkingService:
@@ -36,10 +36,14 @@ class BenchmarkingService:
             "icon_global", "gem_seamless", "gem_global", "ukmo_seamless", "ukmo_global_deterministic_10km"
         ]
 
-        self.client = influxdb_client.InfluxDBClient(
-            url=settings.influx.url,
-            token=settings.influx.token,
-            org=settings.influx.org,
+        # Get configuration
+        influx_config = get_influx_config()
+        self.latitude, self.longitude = get_coordinates()
+
+        self.client = InfluxDBClient(
+            url=influx_config["url"],
+            token=influx_config["token"],
+            org=influx_config["org"],
             timeout=300_000,
             verify_ssl=False,  # Disable SSL verification for self-signed certificates
             http_client_kwargs={"timeout": 300}
@@ -82,11 +86,12 @@ class BenchmarkingService:
         cache_session = requests_cache.CachedSession(
             '.cache', expire_after=3600)
         retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
-        openmeteo = openmeteo_requests.Client(session=retry_session)
+        openmeteo = openmeteo_requests.Client(
+            session=retry_session)  # type: ignore
         url = "https://api.open-meteo.com/v1/forecast"
         params = {
-            "latitude": 47.6952,
-            "longitude": 9.1307,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
             "hourly": [
                 "temperature_2m", "surface_pressure", "cloud_cover",
                 "precipitation", "relative_humidity_2m", "dew_point_2m"
@@ -98,19 +103,23 @@ class BenchmarkingService:
         responses = openmeteo.weather_api(url, params=params)
         response = responses[0]
         hourly = response.Hourly()
+
+        # Add type ignores for openmeteo API attributes
         hourly_data = {
             "date": pd.date_range(
-                start=pd.to_datetime(hourly.Time(), unit="s", utc=True),
-                end=pd.to_datetime(hourly.TimeEnd(), unit="s", utc=True),
-                freq=pd.Timedelta(seconds=hourly.Interval()),
+                start=pd.to_datetime(
+                    hourly.Time(), unit="s", utc=True),  # type: ignore
+                end=pd.to_datetime(hourly.TimeEnd(), unit="s", # type: ignore
+                                   utc=True),  
+                freq=pd.Timedelta(seconds=hourly.Interval()),  # type: ignore
                 inclusive="left"
             ),
-            "temperature_2m": hourly.Variables(0).ValuesAsNumpy(),
-            "surface_pressure": hourly.Variables(1).ValuesAsNumpy(),
-            "cloud_cover": hourly.Variables(2).ValuesAsNumpy(),
-            "precipitation": hourly.Variables(3).ValuesAsNumpy(),
-            "relative_humidity_2m": hourly.Variables(4).ValuesAsNumpy(),
-            "dew_point_2m": hourly.Variables(5).ValuesAsNumpy()
+            "temperature_2m": hourly.Variables(0).ValuesAsNumpy(), # type: ignore
+            "surface_pressure": hourly.Variables(1).ValuesAsNumpy(), # type: ignore
+            "cloud_cover": hourly.Variables(2).ValuesAsNumpy(),  # type: ignore
+            "precipitation": hourly.Variables(3).ValuesAsNumpy(), # type: ignore
+            "relative_humidity_2m": hourly.Variables(4).ValuesAsNumpy(), # type: ignore
+            "dew_point_2m": hourly.Variables(5).ValuesAsNumpy()  # type: ignore
         }
         df_measured = pd.DataFrame(hourly_data)
 
@@ -124,11 +133,18 @@ class BenchmarkingService:
         return df_measured
 
     def calculate_error(self, df_forecasts, df_measured, forecast_date, lead_time):
-        # 1 Merge df
+        """Calculate error metrics with improved error handling"""
+        if df_forecasts.empty or df_measured.empty:
+            print(
+                f"Warning: Empty dataframes - forecasts: {len(df_forecasts)}, measured: {len(df_measured)}")
+            return pd.DataFrame()
+
+        # Ensure datetime columns are properly formatted
         df_forecasts["forecast_date"] = pd.to_datetime(
             df_forecasts["forecast_date"], utc=True)
         df_measured["date"] = pd.to_datetime(df_measured["date"], utc=True)
 
+        # Merge dataframes
         merged_df = df_forecasts.merge(
             df_measured,
             left_on=["forecast_date", "_field"],
@@ -136,82 +152,158 @@ class BenchmarkingService:
             how="inner"
         )
 
-        # 2 Calculate error
+        if merged_df.empty:
+            print("Warning: No matching data after merge")
+            return pd.DataFrame()
+
+        # Calculate error metrics
         merged_df['abs_error'] = (
             merged_df['_value'] - merged_df['actual_value']).abs()
         merged_df['squared_error'] = (
             merged_df['_value'] - merged_df['actual_value']) ** 2
 
+        # Group by model and field to calculate error statistics
         error_df = merged_df.groupby(["model", "_field"]).agg(
             mae=('abs_error', 'mean'),
             mse=('squared_error', 'mean'),
             rmse=('squared_error', lambda x: (x.mean())**0.5),
         ).reset_index()
 
+        # Select appropriate error metric per field
         error_df["selected_error"] = error_df.apply(
             lambda row: row["mae"] if row["_field"] in ["relative_humidity_2m", "cloud_cover"]
             else row["rmse"],
             axis=1
         )
 
-        # Structure as table to save as one row per model
+        # Pivot to have one row per model with all field errors as columns
         pivot_df = error_df.pivot_table(
             index=["model"],
             columns="_field",
             values="selected_error"
         ).reset_index()
 
+        # Add metadata
         pivot_df["lead_time"] = lead_time
         pivot_df["forecast_date"] = forecast_date
 
         return pivot_df
 
     def write_data_to_influxdb(self, df: pd.DataFrame):
-
+        """Write benchmark data to InfluxDB with error handling"""
+        write_api = self.client.write_api(write_options=SYNCHRONOUS)
         batch = []
 
-        write_api = self.client.write_api(write_options=SYNCHRONOUS)
         for _, row in df.iterrows():
-            point = (
-                Point("forecast_error")
-                .tag("model", row["model"])
-                .tag("lead_time", row["lead_time"])
-                .field("forecast_date", row["forecast_date"].isoformat())
-                .field("cloud_cover", float(row["cloud_cover"]))
-                .field("relative_humidity_2m", float(row["relative_humidity_2m"]))
-                .field("temperature_2m", float(row["temperature_2m"]))
-                .field("surface_pressure", float(row["surface_pressure"]))
-                .field("dew_point_2m", float(row["dew_point_2m"]))
-                .field("precipitation", float(row["precipitation"]))
-            )
-            batch.append(point)
-        write_api.write(bucket=self.benchmarkingBucket,
-                        org="FogCast", record=batch)
+            try:
+                point = Point("forecast_error") \
+                    .tag("model", str(row["model"])) \
+                    .tag("lead_time", str(row["lead_time"])) \
+                    .field("forecast_date", row["forecast_date"].isoformat())
+
+                # Add fields with NaN checking
+                for field in ["cloud_cover", "relative_humidity_2m", "temperature_2m",
+                              "surface_pressure", "dew_point_2m", "precipitation"]:
+                    value = row.get(field)
+                    if pd.notna(value):  # Only add non-NaN values
+                        point = point.field(field, float(value))
+
+                batch.append(point)
+
+            except Exception as e:
+                print(
+                    f"Error creating point for model {row.get('model', 'unknown')}: {e}")
+                continue
+
+        if batch:
+            try:
+                write_api.write(bucket=self.benchmarkingBucket,
+                                org="FogCast", record=batch)
+                print(f"Successfully wrote {len(batch)} points to InfluxDB")
+            except Exception as e:
+                print(f"Error writing to InfluxDB: {e}")
+                raise
+        else:
+            print("No valid points to write to InfluxDB")
 
     def generic_benchmark(self, models, end_time, daysback, lead_time):
+        """Run benchmark for specified models and time period with error handling"""
         start_time = end_time - timedelta(days=daysback)
 
         print(
-            f"Collecting data from {start_time} to {end_time} for models: {models}")
-        df_forecasts = self.get_forecasts(start_time, end_time, models)
+            f"Collecting data from {start_time} to {end_time} for {len(models)} models")
 
-        print(f"Fetching the measured data for the same period.")
-        measured_df = self.get_measured(start_time, end_time)
+        try:
+            df_forecasts = self.get_forecasts(start_time, end_time, models)
+            if df_forecasts.empty:
+                print(
+                    f"Warning: No forecast data found for time period {start_time} to {end_time}")
+                return
 
-        print(f"Calculating error scores.")
-        error_df = self.calculate_error(
-            df_forecasts, measured_df, end_time, lead_time)
-        print(error_df)
+        except Exception as e:
+            print(f"Error fetching forecast data: {e}")
+            return
 
-        print(f"Writing data to InfluxDB.")
-        self.write_data_to_influxdb(error_df)
+        print(f"Fetching measured data for the same period")
+        try:
+            measured_df = self.get_measured(start_time, end_time)
+            if measured_df.empty:
+                print(
+                    f"Warning: No measured data found for time period {start_time} to {end_time}")
+                return
+
+        except Exception as e:
+            print(f"Error fetching measured data: {e}")
+            return
+
+        print(f"Calculating error scores")
+        try:
+            error_df = self.calculate_error(
+                df_forecasts, measured_df, end_time, lead_time)
+            if error_df.empty:
+                print(
+                    f"Warning: No error calculations possible for time period {start_time} to {end_time}")
+                return
+
+            print(f"Error calculations completed for {len(error_df)} models")
+
+        except Exception as e:
+            print(f"Error calculating error scores: {e}")
+            return
+
+        print(f"Writing data to InfluxDB")
+        try:
+            self.write_data_to_influxdb(error_df)
+
+        except Exception as e:
+            print(f"Error writing to InfluxDB: {e}")
+            return
 
     def run_benchmark(self):
+        """Run all benchmark calculations with proper error handling"""
         warnings.simplefilter("ignore")
         current_date = datetime.now(timezone.utc).replace(
             minute=0, second=0, microsecond=0)
 
+        print(f"Starting benchmark run at {current_date}")
+
         # Run benchmarks for different models and timeframes
-        self.generic_benchmark(self.s_models, current_date, 1, "s")
-        self.generic_benchmark(self.m_models, current_date, 3, "m")
-        self.generic_benchmark(self.l_models, current_date, 7, "l")
+        try:
+            print("Running short-term benchmark (24 hours)")
+            self.generic_benchmark(self.s_models, current_date, 1, "s")
+        except Exception as e:
+            print(f"Error in short-term benchmark: {e}")
+
+        try:
+            print("Running medium-term benchmark (3 days)")
+            self.generic_benchmark(self.m_models, current_date, 3, "m")
+        except Exception as e:
+            print(f"Error in medium-term benchmark: {e}")
+
+        try:
+            print("Running long-term benchmark (7 days)")
+            self.generic_benchmark(self.l_models, current_date, 7, "l")
+        except Exception as e:
+            print(f"Error in long-term benchmark: {e}")
+
+        print("Benchmark run completed")
