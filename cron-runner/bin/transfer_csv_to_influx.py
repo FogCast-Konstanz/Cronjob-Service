@@ -4,17 +4,26 @@ import os
 from pathlib import Path
 
 import pandas as pd
-import influxdb_client
-from influxdb_client import Point, WritePrecision
+from influxdb_client.client.influxdb_client import InfluxDBClient
+from influxdb_client.domain.write_precision import WritePrecision
+from influxdb_client.client.write.point import Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-from cron.settings import settings
+from cron.settings_utils import get_data_dir, get_influx_config, get_coordinates
 
 
 def main():
-    directories = os.listdir(settings.data_dir)
+    data_dir = get_data_dir()
+    influx_config = get_influx_config()
+    latitude, longitude = get_coordinates()
 
-    client = influxdb_client.InfluxDBClient(url=settings.influx.url, token=settings.influx.token, org=settings.influx.org)
+    directories = os.listdir(data_dir)
+
+    client = InfluxDBClient(
+        url=influx_config['url'],
+        token=influx_config['token'],
+        org=influx_config['org']
+    )
     write_api = client.write_api(write_options=SYNCHRONOUS)
 
     for directory in directories:
@@ -25,9 +34,9 @@ def main():
             print(f"Skipping query due to old date format: {utc_time}")
             continue
 
-        models = os.listdir(os.path.join(settings.data_dir, directory))
+        models = os.listdir(os.path.join(data_dir, directory))
         for model in models:
-            df = pd.read_csv(os.path.join(settings.data_dir, directory, model))
+            df = pd.read_csv(os.path.join(data_dir, directory, model))
             influx_data = []
             model_name = Path(model).stem
 
@@ -35,8 +44,8 @@ def main():
                 point = Point("forecast")
                 point.time(utc_time, WritePrecision.S)
                 point.tag("model", model_name)
-                point.tag("latitude", settings.latitude)
-                point.tag("longitude", settings.longitude)
+                point.tag("latitude", latitude)
+                point.tag("longitude", longitude)
                 point.tag("forecast_date", row["date"])
 
                 row = row.drop("date")
@@ -44,7 +53,7 @@ def main():
                 is_nan = row.isna()
                 if is_nan.sum() == len(row):
                     # if all values are NaN, skip this row
-                    # this can happen if the forecast is too far in the future 
+                    # this can happen if the forecast is too far in the future
                     # and the model does not provide data yet
                     continue
 
@@ -56,8 +65,9 @@ def main():
                     point.field(key, value)
 
                 influx_data.append(point)
-            
-            write_api.write(bucket=settings.influx.bucket, org="FogCast", record=influx_data)
+
+            write_api.write(
+                bucket=influx_config['bucket'], org="FogCast", record=influx_data)
         print(">>> Wrote", len(models), "models for", directory)
     write_api.close()
 

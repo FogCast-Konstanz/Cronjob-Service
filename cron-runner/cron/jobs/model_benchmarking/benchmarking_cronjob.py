@@ -7,13 +7,15 @@ from cron.jobs.model_benchmarking.benchmarking import BenchmarkingService
 
 import logging
 
+
 class BenchmarkingCronjob(CronjobBase):
 
     def __init__(self):
         super().__init__()
-        
+
     def start(self, local_dt: datetime) -> bool:
-        print(f"Starting BenchmarkingCronjob at {local_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC")
+        print(
+            f"Starting BenchmarkingCronjob at {local_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC")
         try:
             service = BenchmarkingService()
             service.run_benchmark()
@@ -21,6 +23,6 @@ class BenchmarkingCronjob(CronjobBase):
         except BaseException as e:
             logging.exception(f"Error in BenchmarkingCronjob", exc_info=e)
             return False
-        
+
     def cleanUpAfterError(self):
         pass

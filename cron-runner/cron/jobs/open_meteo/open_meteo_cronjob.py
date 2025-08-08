@@ -6,7 +6,8 @@ import pandas as pd
 from retry_requests import retry
 
 from cron.jobs.cronjob_base import CronjobBase
-from cron.settings import settings
+from cron.settings_utils import get_setting, get_coordinates
+
 
 class OpenMeteoCronjob(CronjobBase):
 
@@ -14,22 +15,33 @@ class OpenMeteoCronjob(CronjobBase):
         super().__init__()
         self._lastDataDirectory = None
 
-        models_df = pd.read_csv(settings.model_ids_path)
-        self._models = {row['id']: row['name'] for _, row in models_df.iterrows()}
+        model_ids_path = get_setting(
+            'model_ids_path', './config/model_ids.csv')
+        models_df = pd.read_csv(model_ids_path)
+        self._models = {row['id']: row['name']
+                        for _, row in models_df.iterrows()}
 
-        hourly_fields_df = pd.read_csv(settings.hourly_fields_path)
-        self._hourly_fields = [row['field'] for _, row in hourly_fields_df.iterrows()]
+        hourly_fields_path = get_setting(
+            'hourly_fields_path', './config/hourly_fields.csv')
+        hourly_fields_df = pd.read_csv(hourly_fields_path)
+        self._hourly_fields = [row['field']
+                               for _, row in hourly_fields_df.iterrows()]
 
     def get_data_for_all_models(self):
         all_responses = []
-        cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
-        retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
-        openmeteo = openmeteo_requests.Client(session = retry_session)
+        latitude, longitude = get_coordinates()
+
+        cache_session = requests_cache.CachedSession(
+            '.cache', expire_after=3600)
+        retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
+        # Type ignore for the session type mismatch
+        openmeteo = openmeteo_requests.Client(
+            session=retry_session)  # type: ignore
         url = "https://api.open-meteo.com/v1/forecast"
         for model in self._models.values():
             params = {
-                "latitude": settings.latitude,
-                "longitude": settings.longitude,
+                "latitude": latitude,
+                "longitude": longitude,
                 "hourly": self._hourly_fields,
                 "timezone": "GMT",
                 "models": [model],
@@ -43,14 +55,14 @@ class OpenMeteoCronjob(CronjobBase):
             except Exception as e:
                 print("Unable to request data for model ", model)
                 error_message = (
-                            f"**⚠️ Cronjob Warning**\n"
-                            f"**Time:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n"
-                            f"**Unable to request data for model `{model}`**\n"
-                            f"**Error message:**\n"
-                            f"```\n{str(e)}\n```"
-                        )
+                    f"**⚠️ Cronjob Warning**\n"
+                    f"**Time:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n"
+                    f"**Unable to request data for model `{model}`**\n"
+                    f"**Error message:**\n"
+                    f"```\n{str(e)}\n```"
+                )
                 if self._webhook is not None:
                     self._webhook.send(error_message)
                 continue
-        
+
         return all_responses

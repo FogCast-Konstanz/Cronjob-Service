@@ -10,7 +10,7 @@ from cron.jobs.open_meteo.open_meteo_csv_cronjob import OpenMeteoCsvCronjob
 from cron.jobs.open_meteo.open_meteo_influx_cronjob import OpenMeteoInfluxCronjob
 from cron.jobs.water_level.pegel_online_cronjob import PegelOnlineCronjob
 from cron.jobs.model_benchmarking.benchmarking_cronjob import BenchmarkingCronjob
-from cron.settings import settings
+from cron.settings_utils import get_log_dir, get_discord_webhook_url
 
 
 # Constants
@@ -19,8 +19,9 @@ MINUTES_60 = 60
 MINUTES_1440 = 1440  # Daily
 
 # Configure logging
-os.makedirs(settings.log_dir, exist_ok=True)
-log_file_path = os.path.join(settings.log_dir, 'cron.log')
+log_dir = get_log_dir()
+os.makedirs(log_dir, exist_ok=True)
+log_file_path = os.path.join(log_dir, 'cron.log')
 logging.basicConfig(
     filename=log_file_path,
     filemode='w',
@@ -64,7 +65,7 @@ class JobScheduler:
     def _initialize_webhook(self) -> Optional[SyncWebhook]:
         """Initialize Discord webhook if URL is configured."""
         try:
-            webhook_url = getattr(settings, 'discord', {}).get('webhook_url', '')
+            webhook_url = get_discord_webhook_url()
             return SyncWebhook.from_url(webhook_url) if webhook_url else None
         except Exception as e:
             self._logger.warning(f"Failed to initialize Discord webhook: {e}")
@@ -142,6 +143,9 @@ class JobScheduler:
 
     def _send_error_notification(self, job_name: str, error: Exception) -> None:
         """Send error notification via Discord webhook."""
+        if not self._webhook:
+            return
+            
         try:
             error_message = (
                 f"**⚠️ Cronjob Error**\n"

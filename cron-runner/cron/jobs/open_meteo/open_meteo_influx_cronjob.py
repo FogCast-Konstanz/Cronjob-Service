@@ -1,22 +1,31 @@
 from datetime import datetime, timezone
 
 import pandas as pd
-import influxdb_client
-from influxdb_client import Point, WritePrecision
+from influxdb_client.client.influxdb_client import InfluxDBClient
+from influxdb_client.client.write.point import Point
+from influxdb_client.domain.write_precision import WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 from cron.jobs.open_meteo.open_meteo_cronjob import OpenMeteoCronjob
 from cron.jobs.toDataFrame import extract_model_data
-from cron.settings import settings
+from cron.settings_utils import get_influx_config, get_coordinates
 
 
 class OpenMeteoInfluxCronjob(OpenMeteoCronjob):
     def __init__(self):
         super().__init__()
-        self.client = influxdb_client.InfluxDBClient(url=settings.influx.url, token=settings.influx.token, org=settings.influx.org)
+        influx_config = get_influx_config()
+        self.client = InfluxDBClient(
+            url=influx_config['url'],
+            token=influx_config['token'],
+            org=influx_config['org']
+        )
 
     def start(self, local_dt: datetime) -> bool:
-        utc_dt = local_dt.astimezone(timezone.utc)        
+        utc_dt = local_dt.astimezone(timezone.utc)
+        influx_config = get_influx_config()
+        latitude, longitude = get_coordinates()
+
         write_api = self.client.write_api(write_options=SYNCHRONOUS)
 
         all_responses = self.get_data_for_all_models()
@@ -31,8 +40,8 @@ class OpenMeteoInfluxCronjob(OpenMeteoCronjob):
                 point = Point("forecast")
                 point.time(utc_dt, WritePrecision.S)
                 point.tag("model", model)
-                point.tag("latitude", settings.latitude)
-                point.tag("longitude", settings.longitude)
+                point.tag("latitude", latitude)
+                point.tag("longitude", longitude)
                 point.tag("forecast_date", row["date"])
 
                 row = row.drop("date")
@@ -45,10 +54,12 @@ class OpenMeteoInfluxCronjob(OpenMeteoCronjob):
                     point.field(key, value)
 
                 influx_data.append(point)
-                
-            write_api.write(bucket=settings.influx.bucket, org="FogCast", record=influx_data)
+
+            write_api.write(
+                bucket=influx_config['bucket'], org="FogCast", record=influx_data)
             print("Wrote", len(influx_data), "rows for", model)
         write_api.close()
+        return True
 
     def cleanUpAfterError(self):
         pass

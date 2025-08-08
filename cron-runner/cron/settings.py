@@ -2,6 +2,7 @@ import pathlib
 import json
 import os
 
+
 class Settings:
     def __init__(self, **entries):
         for key, value in entries.items():
@@ -13,6 +14,7 @@ class Settings:
     def __repr__(self):
         return f"<Settings {self.__dict__}>"
 
+
 def merge_dict(default, override):
     for key, value in override.items():
         if key in default and isinstance(default[key], dict) and isinstance(value, dict):
@@ -20,17 +22,20 @@ def merge_dict(default, override):
         else:
             default[key] = value
 
+
 def convert_paths(obj, project_root):
     for key, value in obj.items():
         if isinstance(value, str) and (key.endswith("_path") or key.endswith("_dir")):
-            obj[key] = os.path.join(project_root, value) if not os.path.isabs(value) else value
+            obj[key] = os.path.join(
+                project_root, value) if not os.path.isabs(value) else value
         elif isinstance(value, dict):
             convert_paths(value, project_root)
+
 
 def load_settings():
     file_dir = pathlib.Path(__file__).parent
     project_root = file_dir.parent.resolve()
-    
+
     # Load default settings from settings.json
     settings_path = project_root / "settings.json"
     with open(settings_path, "r") as f:
@@ -50,6 +55,7 @@ def load_settings():
 
     # Return a Settings instance initialized with the JSON data
     return Settings(**settings_json)
+
 
 # Usage
 settings = load_settings()
