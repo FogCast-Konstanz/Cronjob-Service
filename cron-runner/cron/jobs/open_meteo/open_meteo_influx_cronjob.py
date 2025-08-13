@@ -30,9 +30,8 @@ class OpenMeteoInfluxCronjob(OpenMeteoCronjob):
 
         all_responses = self.get_data_for_all_models()
         for response in all_responses:
-            model_id = response.Model()
-            model = self._models[model_id]
-            df = extract_model_data(response, self._hourly_fields)
+            model = response.model
+            df = extract_model_data(response.response, self._hourly_fields)
 
             influx_data = []
 

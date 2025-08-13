@@ -1,5 +1,8 @@
+from dataclasses import dataclass
 from datetime import datetime
 import openmeteo_requests
+
+from openmeteo_sdk.WeatherApiResponse import WeatherApiResponse
 
 import requests_cache
 import pandas as pd
@@ -7,6 +10,12 @@ from retry_requests import retry
 
 from cron.jobs.cronjob_base import CronjobBase
 from cron.settings_utils import get_setting, get_coordinates
+
+
+@dataclass
+class ModelResponse:
+    model: str
+    response: WeatherApiResponse
 
 
 class OpenMeteoCronjob(CronjobBase):
@@ -18,8 +27,7 @@ class OpenMeteoCronjob(CronjobBase):
         model_ids_path = get_setting(
             'model_ids_path', './config/model_ids.csv')
         models_df = pd.read_csv(model_ids_path)
-        self._models = {row['id']: row['name']
-                        for _, row in models_df.iterrows()}
+        self._models = [row['name'] for _, row in models_df.iterrows()]
 
         hourly_fields_path = get_setting(
             'hourly_fields_path', './config/hourly_fields.csv')
@@ -27,7 +35,7 @@ class OpenMeteoCronjob(CronjobBase):
         self._hourly_fields = [row['field']
                                for _, row in hourly_fields_df.iterrows()]
 
-    def get_data_for_all_models(self):
+    def get_data_for_all_models(self) -> list[ModelResponse]:
         all_responses = []
         latitude, longitude = get_coordinates()
 
@@ -38,7 +46,7 @@ class OpenMeteoCronjob(CronjobBase):
         openmeteo = openmeteo_requests.Client(
             session=retry_session)  # type: ignore
         url = "https://api.open-meteo.com/v1/forecast"
-        for model in self._models.values():
+        for model in self._models:
             params = {
                 "latitude": latitude,
                 "longitude": longitude,
@@ -50,7 +58,11 @@ class OpenMeteoCronjob(CronjobBase):
 
             try:
                 responses = openmeteo.weather_api(url, params=params)
-                all_responses.append(responses[0])
+                single_response = responses[0]
+                if single_response is None:
+                    raise Exception
+                res = ModelResponse(model, single_response)
+                all_responses.append(res)
                 print("Received data for model: {}".format(model))
             except Exception as e:
                 print("Unable to request data for model ", model)

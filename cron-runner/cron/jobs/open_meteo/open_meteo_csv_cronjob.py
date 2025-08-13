@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 import os
 
-
 from cron.jobs.open_meteo.open_meteo_cronjob import OpenMeteoCronjob
 from cron.jobs.toDataFrame import extract_model_data
 from cron.settings_utils import get_data_dir
@@ -22,9 +21,8 @@ class OpenMeteoCsvCronjob(OpenMeteoCronjob):
 
         all_responses = self.get_data_for_all_models()
         for response in all_responses:
-            model_id = response.Model()
-            model = self._models[model_id]
-            df = extract_model_data(response, self._hourly_fields)
+            model = response.model
+            df = extract_model_data(response.response, self._hourly_fields)
             df.to_csv("{}/{}.csv".format(data_directory, model), index=False)
 
         self._lastDataDirectory = data_directory
