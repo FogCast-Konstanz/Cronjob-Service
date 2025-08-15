@@ -6,7 +6,7 @@ services:
     volumes:
       - type: bind
         source: ./csv-data
-        target: /app/data
+        target: /app/csv-data
       - type: bind
         source: ./cron-logs
         target: /app/logs
