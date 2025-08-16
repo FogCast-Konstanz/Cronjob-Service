@@ -20,14 +20,14 @@ class BenchmarkingService:
             "meteofrance_seamless", "meteofrance_arpege_world", "meteofrance_arpege_europe", "meteofrance_arome_france",
             "meteofrance_arome_france_hd", "metno_seamless", "metno_nordic", "knmi_seamless", "knmi_harmonie_arome_europe",
             "knmi_harmonie_arome_netherlands", "dmi_seamless", "dmi_harmonie_arome_europe", "ukmo_seamless",
-            "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km"
+            "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km", "meteoswiss_icon_ch1"
         ]
         # 3 days/72 hours
         self.m_models = [
             "ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", "bom_access_global", "gfs_seamless",
             "gfs_global", "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_msm", "jma_gsm", "icon_seamless",
             "icon_global", "icon_eu", "gem_seamless", "gem_global", "gem_regional", "meteofrance_seamless",
-            "meteofrance_arpege_world", "meteofrance_arpege_europe", "ukmo_seamless", "ukmo_global_deterministic_10km"
+            "meteofrance_arpege_world", "meteofrance_arpege_europe", "ukmo_seamless", "ukmo_global_deterministic_10km", "meteoswiss_icon_ch2"
         ]
         # 7 days/168 hours
         self.l_models = [
@@ -66,7 +66,8 @@ class BenchmarkingService:
                     or r["_field"] == "precipitation"
                     or r["_field"] == "cloud_cover"
                     or r["_field"] == "surface_pressure"
-                    or r["_field"] == "dew_point_2m")
+                    or r["_field"] == "dew_point_2m"
+                    or r["_field"] == "wind_speed_10m")
                 |> filter(fn: (r) =>
                     time(v: r.forecast_date) >= startForecast and
                     time(v: r.forecast_date) <= endForecast
@@ -94,7 +95,7 @@ class BenchmarkingService:
             "longitude": self.longitude,
             "hourly": [
                 "temperature_2m", "surface_pressure", "cloud_cover",
-                "precipitation", "relative_humidity_2m", "dew_point_2m"
+                "precipitation", "relative_humidity_2m", "dew_point_2m", "wind_speed_10m"
             ],
             "timezone": "Europe/Berlin",
             "start_date": start_time.strftime("%Y-%m-%d"),
@@ -119,7 +120,8 @@ class BenchmarkingService:
             "cloud_cover": hourly.Variables(2).ValuesAsNumpy(),  # type: ignore
             "precipitation": hourly.Variables(3).ValuesAsNumpy(), # type: ignore
             "relative_humidity_2m": hourly.Variables(4).ValuesAsNumpy(), # type: ignore
-            "dew_point_2m": hourly.Variables(5).ValuesAsNumpy()  # type: ignore
+            "dew_point_2m": hourly.Variables(5).ValuesAsNumpy(),  # type: ignore
+            "wind_speed_10m": hourly.Variables(6).ValuesAsNumpy()  # type: ignore
         }
         df_measured = pd.DataFrame(hourly_data)
 
@@ -202,8 +204,10 @@ class BenchmarkingService:
                     .field("forecast_date", row["forecast_date"].isoformat())
 
                 # Add fields with NaN checking
-                for field in ["cloud_cover", "relative_humidity_2m", "temperature_2m",
-                              "surface_pressure", "dew_point_2m", "precipitation"]:
+                for field in [
+                    "cloud_cover", "relative_humidity_2m", "temperature_2m",
+                    "surface_pressure", "dew_point_2m", "precipitation", "wind_speed_10m"
+                ]:
                     value = row.get(field)
                     if pd.notna(value):  # Only add non-NaN values
                         point = point.field(field, float(value))
