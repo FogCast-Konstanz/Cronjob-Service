@@ -20,7 +20,7 @@ class BenchmarkingService:
             "meteofrance_seamless", "meteofrance_arpege_world", "meteofrance_arpege_europe", "meteofrance_arome_france",
             "meteofrance_arome_france_hd", "metno_seamless", "metno_nordic", "knmi_seamless", "knmi_harmonie_arome_europe",
             "knmi_harmonie_arome_netherlands", "dmi_seamless", "dmi_harmonie_arome_europe", "ukmo_seamless",
-            "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km", "meteoswiss_icon_ch1"
+            "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km", "meteoswiss_icon_ch1", "meteoswiss_icon_ch2"
         ]
         # 3 days/72 hours
         self.m_models = [
