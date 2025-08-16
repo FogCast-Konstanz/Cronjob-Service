@@ -24,9 +24,9 @@ class OpenMeteoCronjob(CronjobBase):
         super().__init__()
         self._lastDataDirectory = None
 
-        model_ids_path = get_setting(
-            'model_ids_path', './config/model_ids.csv')
-        models_df = pd.read_csv(model_ids_path)
+        models_path = get_setting(
+            'models_path', './config/models.csv')
+        models_df = pd.read_csv(models_path)
         self._models = [row['name'] for _, row in models_df.iterrows()]
 
         hourly_fields_path = get_setting(

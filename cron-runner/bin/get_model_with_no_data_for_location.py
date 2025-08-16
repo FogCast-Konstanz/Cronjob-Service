@@ -1,11 +1,13 @@
 import os
 import openmeteo_requests
 import pathlib
+import pandas as pd
 import requests
 
 import requests_cache
 from retry_requests import retry
-from cron.settings_utils import get_coordinates
+from cron.settings_utils import get_coordinates, get_setting
+from cron.settings import settings
 
 
 def main():
@@ -18,8 +20,9 @@ def main():
     openmeteo = openmeteo_requests.Client(
         session=retry_session)  # type: ignore
 
-    models = ["ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", "bom_access_global", "gfs_seamless", "gfs_global", "gfs_hrrr", "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_msm", "jma_gsm", "icon_seamless", "icon_global", "icon_eu", "icon_d2", "gem_seamless", "gem_global", "gem_regional", "gem_hrdps_continental", "meteofrance_seamless", "meteofrance_arpege_world",
-              "meteofrance_arpege_europe", "meteofrance_arome_france", "meteofrance_arome_france_hd", "arpae_cosmo_seamless", "arpae_cosmo_2i", "arpae_cosmo_5m", "metno_seamless", "metno_nordic", "knmi_seamless", "knmi_harmonie_arome_europe", "knmi_harmonie_arome_netherlands", "dmi_seamless", "dmi_harmonie_arome_europe", "ukmo_seamless", "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km"]
+    models_path = get_setting('models_path', './config/models.csv')
+    models_df = pd.read_csv(models_path)
+    models = [row['name'] for _, row in models_df.iterrows()]
 
     for model in models:
         url = "https://api.open-meteo.com/v1/forecast"
