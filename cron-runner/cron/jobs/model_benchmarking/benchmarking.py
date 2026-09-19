@@ -20,20 +20,26 @@ class BenchmarkingService:
             "meteofrance_seamless", "meteofrance_arpege_world", "meteofrance_arpege_europe", "meteofrance_arome_france",
             "meteofrance_arome_france_hd", "metno_seamless", "metno_nordic", "knmi_seamless", "knmi_harmonie_arome_europe",
             "knmi_harmonie_arome_netherlands", "dmi_seamless", "dmi_harmonie_arome_europe", "ukmo_seamless",
-            "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km", "meteoswiss_icon_ch1", "meteoswiss_icon_ch2"
+            "ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km", "meteoswiss_icon_ch1", "meteoswiss_icon_ch2",
+            # KI-Temperaturmodelle (max Forecast ~7 Tage)
+            "ki_rf_st", "ki_rf_lt", "ki_lstm_st", "ki_lstm_lt", "ki_cnn_st", "ki_cnn_lt"
         ]
         # 3 days/72 hours
         self.m_models = [
             "ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", "bom_access_global", "gfs_seamless",
             "gfs_global", "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_msm", "jma_gsm", "icon_seamless",
             "icon_global", "icon_eu", "gem_seamless", "gem_global", "gem_regional", "meteofrance_seamless",
-            "meteofrance_arpege_world", "meteofrance_arpege_europe", "ukmo_seamless", "ukmo_global_deterministic_10km", "meteoswiss_icon_ch2"
+            "meteofrance_arpege_world", "meteofrance_arpege_europe", "ukmo_seamless", "ukmo_global_deterministic_10km", "meteoswiss_icon_ch2",
+            # KI-Langzeitmodelle (Forecast bis 7 Tage)
+            "ki_rf_lt", "ki_lstm_lt", "ki_cnn_lt"
         ]
         # 7 days/168 hours
         self.l_models = [
             "ecmwf_ifs04", "ecmwf_ifs025", "ecmwf_aifs025", "cma_grapes_global", "bom_access_global", "gfs_seamless",
             "gfs_global", "ncep_nbm_conus", "gfs_graphcast025", "jma_seamless", "jma_gsm", "icon_seamless",
-            "icon_global", "gem_seamless", "gem_global", "ukmo_seamless", "ukmo_global_deterministic_10km"
+            "icon_global", "gem_seamless", "gem_global", "ukmo_seamless", "ukmo_global_deterministic_10km",
+            # KI-Langzeitmodelle (Forecast bis 7 Tage)
+            "ki_rf_lt", "ki_lstm_lt", "ki_cnn_lt"
         ]
 
         # Get configuration
