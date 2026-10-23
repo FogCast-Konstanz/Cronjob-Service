@@ -38,6 +38,11 @@ Cronjob-Service/
 │   └── Dockerfile
 ```
 
+The Raspberry-Pi fallback uses the Basic LSTM as its preferred model when a
+verified model artifact is deployed. If the artifact cannot be loaded or a
+prediction fails validation, the existing linear DWD-correlation fallback is
+used automatically.
+
 ## Features
 
 ### Core Functionality
@@ -46,6 +51,64 @@ Cronjob-Service/
 - **CSV Export**: Local data storage in structured CSV format
 - **Model Benchmarking**: Automated performance analysis of weather prediction models
 - **Water Level Monitoring**: Lake Constance and Rhein water level tracking
+
+### Raspberry-Pi Fallback
+
+The fallback job runs every 30 minutes and checks the latest Raspberry-Pi
+measurements for gaps. If a field has been missing for more than two hours,
+the job combines Raspberry-Pi history with current and historical DWD data to
+estimate temperature, humidity and water temperature. Real measurements are
+never replaced.
+
+The fallback order is:
+
+1. Load and validate the versioned Basic-LSTM model artifact.
+2. Check the prediction for finite and physically plausible values.
+3. Use the linear DWD-correlation method if the LSTM is unavailable or rejected.
+4. Write no value if both methods fail validation.
+
+Fallback records are stored in InfluxDB with `is_fallback=true` and
+`forecast_quality="estimated"`. Additional tags identify the model version,
+reason and plausibility result. The frontend displays fallback values
+separately from measured values.
+
+### Basic LSTM
+
+The Basic LSTM is trained offline and is not trained inside the cron
+container. Its model and metadata files are stored together in
+`cron-runner/config/models/`. The metadata contains the feature order,
+sequence length, scaler information, model version and model hash. A model is
+only loaded if the artifact and metadata are valid.
+
+The input contains 48 hourly values of Raspberry-Pi and DWD measurements as
+well as cyclical time features. The model predicts temperature, humidity and
+water temperature. Training data is prepared with:
+
+```powershell
+python bin\prepare_basic_lstm_data.py --help
+python -m bin.train_basic_lstm --help
+```
+
+To roll back to the linear fallback, disable `fallback.basic_lstm` in the
+configuration or remove the deployed model artifact and restart the cron
+service.
+
+### Offline Fallback Benchmark
+
+The offline benchmark compares linear correlation, probabilistic correlation,
+Basic LSTM and LSTM with attention on aligned historical data. It is an
+evaluation tool only; it does not wait for live data gaps and does not write
+production forecasts.
+
+Run it from `cron-runner` with:
+
+```powershell
+python dev\fallback_strategy_benchmark.py
+```
+
+Generated metrics and comparison files are written to
+`dev/fallback_benchmark_results/`. Benchmark results describe the available
+evaluation data and are not a guarantee for future weather conditions.
 
 ## Quick Start
 
@@ -152,6 +215,9 @@ cron-main
 transfer-csv-to-influx
 get-model-with-no-data-for-location
 fix-time
+
+# Train a Basic-LSTM artifact offline (do not run this in the cron container)
+train-basic-lstm --help
 ```
 
 ### Running Individual Jobs
@@ -246,6 +312,11 @@ volumes:
       source: ./cron-logs
       target: /app/logs
 ```
+
+The Basic-LSTM model files must also be included in the deployed
+`cron-runner/config/models/` directory. Training should be performed offline,
+and the model artifact and metadata file should be deployed as a matching
+pair.
 
 ## Future Enhancements
 

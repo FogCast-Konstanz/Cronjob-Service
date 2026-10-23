@@ -1,9 +1,12 @@
 openmeteo-requests
 requests-cache 
 retry-requests 
-numpy 
+numpy>=2.1,<2.3
 pandas
 pathlib
 influxdb-client
 pytz
 discord.py
+requests
+scipy
+tensorflow-cpu>=2.20,<2.21

@@ -13,5 +13,23 @@
   },
   "discord": {
     "webhook_url": ""  
+  },
+  "data_interface": {
+    "url": "http://fogcast-api:8000",
+    "timeout_seconds": 120
+  },
+  "fallback": {
+    "primary": "basic_lstm",
+    "basic_lstm": {
+      "enabled": true,
+      "model_path": "./config/models/basic_lstm.keras",
+      "metadata_path": "./config/models/basic_lstm.metadata.json",
+      "sequence_length": 48,
+      "min_history_rows": 72
+    },
+    "plausibility": {
+      "enabled": true,
+      "margin": 10.0
+    }
   }
 }

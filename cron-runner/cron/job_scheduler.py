@@ -10,11 +10,13 @@ from cron.jobs.open_meteo.open_meteo_csv_cronjob import OpenMeteoCsvCronjob
 from cron.jobs.open_meteo.open_meteo_influx_cronjob import OpenMeteoInfluxCronjob
 from cron.jobs.water_level.pegel_online_cronjob import PegelOnlineCronjob
 from cron.jobs.model_benchmarking.benchmarking_cronjob import BenchmarkingCronjob
+from cron.jobs.raspi_fallback.raspi_fallback_cronjob import RaspiDWDFallbackCronjob
 from cron.settings_utils import get_log_dir, get_discord_webhook_url
 
 
 # Constants
 MINUTES_5 = 5
+MINUTES_30 = 30
 MINUTES_60 = 60
 MINUTES_1440 = 1440  # Daily
 
@@ -35,6 +37,7 @@ class JobScheduler:
     
     Jobs are organized by interval in minutes:
     - 5: Every 5 minutes
+    - 30: Every 30 minutes
     - 60: Every hour
     - 1440: Every day
     """
@@ -43,6 +46,10 @@ class JobScheduler:
     _job_config: Dict[int, List[Type[CronjobBase]]] = {
         MINUTES_5: [
             # Jobs that run every 5 minutes
+        ],
+        MINUTES_30: [
+            # Jobs that run every 30 minutes
+            RaspiDWDFallbackCronjob,
         ],
         MINUTES_60: [
             # Jobs that run every hour

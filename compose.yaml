@@ -3,6 +3,8 @@ services:
     build: cron-runner
     container_name: fogcast-cron-runner
     restart: always
+    depends_on:
+      - "fogcast-influxdb"
     volumes:
       - type: bind
         source: ./csv-data
@@ -10,8 +12,15 @@ services:
       - type: bind
         source: ./cron-logs
         target: /app/logs
+      - type: bind
+        source: ./cron-runner/config/models
+        target: /app/config/models
+        read_only: true
     networks:
+      - default
       - proxy-net
+          #networks:
+          #- proxy-net
 
   status-reporter:
     build: cron-status
@@ -31,8 +40,31 @@ services:
       interval: 10s
       timeout: 10s
       retries: 3
+        #networks:
+        #- proxy-net
+
+  fogcast-influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./influxdb/data:/var/lib/influxdb2
+      - ./influxdb/config:/etc/influxdb2
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: TOKENTOKENTOKEN
+      DOCKER_INFLUXDB_INIT_ORG: FogCast
+      DOCKER_INFLUXDB_INIT_BUCKET: WeatherForecast
+      DOCKER_INFLUXDB_INIT_RETENTION: 30d
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: TOKEN
     networks:
-      - proxy-net
+      - default
+# networks:
+#  proxy-net:
+#    external: true
 
 networks:
   proxy-net:

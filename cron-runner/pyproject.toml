@@ -11,12 +11,21 @@ dependencies = [
    'openmeteo-requests>=1.3.0',
    'requests-cache>=1.2.1',
    'retry-requests>=2.0.0',
-   'numpy >= 2.1.2',
+   'numpy>=2.1,<2.3',
    'pandas >= 2.2.3',
    'pathlib>=1.0.1',
    'influxdb-client',
    'pytz',
-   'discord.py'
+   'discord.py',
+   'requests>=2.32.0',
+   'scipy>=1.14.1'
+]
+
+[project.optional-dependencies]
+# TensorFlow is intentionally optional: the default cron container keeps the
+# deterministic linear fallback when no verified LSTM artifact is deployed.
+fallback-lstm = [
+   'tensorflow-cpu>=2.20,<2.21'
 ]
 
 [project.scripts]
@@ -25,6 +34,7 @@ transfer-csv-to-influx = "bin.transfer_csv_to_influx:main"
 fix-time = "bin.fix_time:main"
 get-models-with-ids = "bin.get_models_with_ids:main"
 get-model-with-no-data-for-location = "bin.get_model_with_no_data_for_location:main"
+train-basic-lstm = "bin.train_basic_lstm:main"
 
 [tool.setuptools]
 packages = ["cron", "bin"]
