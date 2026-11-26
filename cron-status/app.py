@@ -1,6 +1,10 @@
+
+"""Cron-runner log status. Does not certify that new weather data were written."""
+from datetime import datetime, timezone
+import os
+
 from flask import Flask, jsonify
 from flask_cors import CORS
-import os
 
 app = Flask(__name__)
 CORS(app)
@@ -9,50 +13,66 @@ LOG_PATH = os.getenv('LOG_PATH')
 if not LOG_PATH:
     raise ValueError('LOG_PATH environment variable is not set')
 
-def read_cronjob_status():
-    log_file_path = LOG_PATH
-    if not os.path.exists(log_file_path):
-        return {'status': 'unknown', 'message': 'Log-Datei nicht gefunden'}
+# Scheduler is invoked hourly in the provided crontab. Provisional bounds.
+FRESH_MINUTES = 90
+LATE_MINUTES = 180
+START_MARKERS = ('## Cron scheduler started', 'Cron gestartet')
 
+
+def read_cronjob_status(now=None):
+    now = now or datetime.now(timezone.utc)
+    checked_at = now.isoformat().replace('+00:00', 'Z')
+    if not os.path.isfile(LOG_PATH):
+        return {'status': 'unknown', 'message': 'Cronjob-Logdatei fehlt.',
+                'checked_at': checked_at, 'last_activity_at': None}
     try:
-        with open(log_file_path, 'r') as f:
-            lines = f.readlines()
-    except Exception as e:
-        return {'status': 'unknown', 'message': f'Fehler beim Lesen der Log-Datei: {e}'}
+        # File modification time is only *last log activity*, not the job start.
+        last_modified = datetime.fromtimestamp(os.path.getmtime(LOG_PATH), timezone.utc)
+        with open(LOG_PATH, encoding='utf-8', errors='replace') as log:
+            lines = log.readlines()[-10000:]
+    except OSError:
+        return {'status': 'unknown', 'message': 'Cronjob-Logdatei nicht lesbar.',
+                'checked_at': checked_at, 'last_activity_at': None}
 
-    if not lines:
-        return {'status': 'unknown', 'message': 'Log-Datei ist leer'}
+    last_activity_at = last_modified.isoformat().replace('+00:00', 'Z')
+    start_index = next((i for i in range(len(lines) - 1, -1, -1)
+                        if any(marker in lines[i] for marker in START_MARKERS)), None)
+    if start_index is None:
+        return {'status': 'unknown', 'message': 'Kein Scheduler-Start im Log nachgewiesen.',
+                'checked_at': checked_at, 'last_activity_at': last_activity_at}
 
-    # Search start of last cron run
-    last_run_start = None
-    for i in range(len(lines) - 1, -1, -1):
-        if "Cron gestartet" in lines[i]:
-            last_run_start = i
-            break
+    block = ''.join(lines[start_index:])
+    if 'ERROR' in block or 'Job failed' in block or 'Job controlled termination' in block:
+        return {'status': 'error', 'message': 'Fehler im letzten Cronjob-Durchlauf.',
+                'checked_at': checked_at, 'last_activity_at': last_activity_at}
+    if 'Job completed:' not in block:
+        return {'status': 'unknown', 'message': 'Kein erfolgreich abgeschlossener Job nachweisbar.',
+                'checked_at': checked_at, 'last_activity_at': last_activity_at}
 
-    if last_run_start is not None:
-        last_run_block = lines[last_run_start:]
+    age_minutes = (now - last_modified).total_seconds() / 60
+    if age_minutes < -2:
+        status, message = 'unknown', 'Logzeitstempel liegt in der Zukunft.'
+    elif age_minutes <= FRESH_MINUTES:
+        status, message = 'success', 'Letzter Cron-Durchlauf ohne erkannten Fehler; Datenfrische separat prüfen.'
+    elif age_minutes <= LATE_MINUTES:
+        status, message = 'warning', 'Cronjob-Logaktivität verspätet.'
     else:
-        last_run_block = lines
+        status, message = 'error', 'Cronjob-Logaktivität veraltet.'
+    return {'status': status, 'message': message, 'checked_at': checked_at,
+            'last_activity_at': last_activity_at}
 
-    block = ''.join(last_run_block)
-
-    # Prüfe den letzten Block auf Fehlerindikatoren
-    if "ERROR" in block:
-        status = 'error'
-    else:
-        status = 'success'
-
-    return {'status': status}
 
 @app.route('/status', methods=['GET'])
 def cronjob_status():
-    status = read_cronjob_status()
-    return jsonify(status)
+    response = jsonify(read_cronjob_status())
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
 
 @app.route('/health-check')
 def health_check():
-    return "success"
+    return 'success'
+
 
 if __name__ == '__main__':
     app.run(debug=True)
